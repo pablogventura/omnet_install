@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Navegar al directorio de inicio del usuario
-cd ~
-
 # Actualizar el sistema
 sudo apt-get update
 
