@@ -143,6 +143,28 @@ make -j"$NPROC"
 echo ">>> Copiando árbol de compilación al paquete..."
 mkdir -p "$ROOT"
 cp -a "$SRC_DIR"/* "$ROOT/"
+# Sustituir ruta de compilación por ruta de instalación (evita que la IDE proponga workspace en /tmp/...)
+# Patrón genérico: cualquier /tmp/tmp.XXX/omnetpp-VERSION (por si el nombre del dir temporal cambia)
+echo ">>> Corrigiendo rutas en archivos de configuración..."
+OMNET_VER_SED="${OMNET_VERSION//./\\.}"
+SED_TMP_PATTERN="/tmp/tmp\.[^/]*/omnetpp-${OMNET_VER_SED}"
+replace_build_path() {
+  sed -i "s|${SED_TMP_PATTERN}|${INSTALL_PREFIX}|g" "$1" 2>/dev/null || true
+  sed -i "s|${SRC_DIR}|${INSTALL_PREFIX}|g" "$1" 2>/dev/null || true
+}
+# 1) Archivos por extensión
+while IFS= read -r -d '' f; do
+  replace_build_path "$f"
+done < <(find "$ROOT" -type f \( -name "*.ini" -o -name "*.properties" -o -name "*.xml" -o -name "*.cfg" -o -name "*.conf" -o -name "*.user" -o -name "*.launch" -o -name "*.prefs" -o -name "*.product" -o -name "config.ini" \) ! -path "*/venv/*" -print0 2>/dev/null)
+# 2) Todo el árbol ide/ (Eclipse guarda workspace por defecto aquí)
+[[ -d "$ROOT/ide" ]] && find "$ROOT/ide" -type f ! -path "*/venv/*" 2>/dev/null | while read -r f; do
+  case "$(file -b --mime-type "$f" 2>/dev/null)" in text/*) replace_build_path "$f" ;; esac
+done
+# 3) Cualquier otro archivo de texto que aún contenga la ruta (patrón /tmp/tmp.XXX/...)
+while IFS= read -r -d '' f; do
+  [[ "$f" == *"/venv/"* ]] && continue
+  case "$(file -b --mime-type "$f" 2>/dev/null)" in text/*) replace_build_path "$f" ;; esac
+done < <(grep -rZl --fixed-strings "/tmp/tmp." "$ROOT" 2>/dev/null)
 # Asegurar permisos de ejecución para setenv y binarios
 [[ -f "$ROOT/setenv" ]] && chmod +x "$ROOT/setenv"
 [[ -d "$ROOT/bin" ]] && chmod +x "$ROOT/bin"/* 2>/dev/null || true
@@ -222,11 +244,28 @@ set -e
 [ -d "${INSTALL_PREFIX}/bin" ] && chmod +x "${INSTALL_PREFIX}/bin"/* 2>/dev/null || true
 # La IDE escribe error.log y otros en ide/; permitir escritura a todos los usuarios
 [ -d "${INSTALL_PREFIX}/ide" ] && chmod -R a+w "${INSTALL_PREFIX}/ide" 2>/dev/null || true
+# samples/ es el workspace por defecto: debe ser escribible para que la IDE no diga "read only"
+[ -d "${INSTALL_PREFIX}/samples" ] && chmod -R a+w "${INSTALL_PREFIX}/samples" 2>/dev/null || true
 # Actualizar menú de aplicaciones para que aparezca el icono de OMNeT++
 command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database /usr/share/applications 2>/dev/null || true
 POSTINST
 
 chmod 755 "$DEBIAN_DIR/postinst"
+
+# postrm: al desinstalar/purgar, quitar icono del menú y wrappers (por si dpkg no los eliminó)
+cat > "$DEBIAN_DIR/postrm" << POSTRM
+#!/bin/sh
+set -e
+case "\$1" in
+  remove|purge)
+    rm -f /usr/share/applications/omnetpp.desktop
+    rm -f /usr/bin/omnetpp /usr/bin/opp_run
+    command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database /usr/share/applications 2>/dev/null || true
+    ;;
+esac
+POSTRM
+
+chmod 755 "$DEBIAN_DIR/postrm"
 
 # Construir el .deb
 DEB_FILE="${OUTPUT_DIR}/${PKG_NAME}_${PKG_VERSION}_${PKG_ARCH}.deb"

@@ -1,0 +1,22 @@
+# Paquetes .deb generados
+*.deb
+
+# Directorio de salida típico del script
+dist/
+
+# Editores e IDE
+.idea/
+.vscode/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Entornos Python (por si se prueba algo local)
+venv/
+.venv/
+
+# Temporales de compilación (por si BUILD_DIR apunta al repo)
+omnetpp-*/
