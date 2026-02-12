@@ -6,8 +6,8 @@
 # Requisitos: wget, tar, dependencias de compilación de OMNeT++ (opcional -d).
 # Genera un AppDir y usa appimagetool (se descarga si no está) para crear el .AppImage.
 #
-# El AppImage depende de las bibliotecas del sistema (Qt5, Python3, etc.) como el .deb.
-# Para máxima portabilidad se podría usar linuxdeploy+plugins en una segunda fase.
+# Incluye dependencias (Qt5, libs del sistema) vía linuxdeploy + plugin Qt para que
+# no haga falta instalar paquetes en Ubuntu. Python3 y venv siguen en el árbol de OMNeT++.
 #
 
 set -e
@@ -15,12 +15,13 @@ set -e
 OMNET_VERSION="${OMNET_VERSION:-6.0.1}"
 OMNET_TARBALL="omnetpp-${OMNET_VERSION}-linux-x86_64.tgz"
 OMNET_URL="https://github.com/omnetpp/omnetpp/releases/download/omnetpp-${OMNET_VERSION}/${OMNET_TARBALL}"
-# Dentro del AppDir el prefix es relativo; en runtime APPDIR/opt/omnetpp-6.0.1
 INSTALL_PREFIX="/opt/omnetpp-${OMNET_VERSION}"
 OUTPUT_DIR="."
 BUILD_DIR="${BUILD_DIR:-$(mktemp -d)}"
 APPIMAGE_NAME="OMNeT++-${OMNET_VERSION}-x86_64.AppImage"
 APPIMAGETOOL_URL="https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+LINUXDEPLOY_URL="https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
+LINUXDEPLOY_PLUGIN_QT_URL="https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage"
 
 # Instalar solo dependencias de construcción (opcional)
 install_build_deps() {
@@ -48,7 +49,8 @@ usage() {
     echo ""
     echo "Variables de entorno:"
     echo "  OMNET_VERSION        Versión de OMNeT++ (por defecto: ${OMNET_VERSION})"
-    echo "  BUILD_DIR            Directorio de compilación temporal (por defecto: temporal)"
+    echo "  BUILD_DIR            Directorio de compilación (por defecto: temporal). Si lo fijas"
+    echo "                       (ej. BUILD_DIR=./build) y vuelves a ejecutar, se reutiliza la compilación."
 }
 
 INSTALL_DEPS=false
@@ -100,42 +102,49 @@ BUILD_DIR="$(cd "$BUILD_DIR" && pwd)"
 echo ">>> Directorio de compilación: $BUILD_DIR"
 echo ">>> Salida AppImage: $OUTPUT_DIR"
 echo ">>> Versión: $OMNET_VERSION"
+echo ">>> (Para reutilizar esta compilación: BUILD_DIR=$BUILD_DIR $0)"
 echo ""
-
-# Descargar OMNeT++
-if [[ ! -f "$BUILD_DIR/$OMNET_TARBALL" ]]; then
-    echo ">>> Descargando $OMNET_URL ..."
-    wget -c -O "$BUILD_DIR/$OMNET_TARBALL" "$OMNET_URL"
-else
-    echo ">>> Usando tarball existente: $BUILD_DIR/$OMNET_TARBALL"
-fi
-
-echo ">>> Descomprimiendo..."
-tar xzf "$BUILD_DIR/$OMNET_TARBALL" -C "$BUILD_DIR"
 
 SRC_DIR="$BUILD_DIR/omnetpp-${OMNET_VERSION}"
 APPDIR="$BUILD_DIR/OMNeT++.AppDir"
 ROOT="$APPDIR${INSTALL_PREFIX}"
+REUSE_BUILD=false
+[[ -x "$SRC_DIR/bin/opp_run" ]] && REUSE_BUILD=true
+
+if [[ "$REUSE_BUILD" == true ]]; then
+  echo ">>> Reutilizando compilación existente en $SRC_DIR"
+else
+  # Descargar OMNeT++
+  if [[ ! -f "$BUILD_DIR/$OMNET_TARBALL" ]]; then
+    echo ">>> Descargando $OMNET_URL ..."
+    wget -c -O "$BUILD_DIR/$OMNET_TARBALL" "$OMNET_URL"
+  else
+    echo ">>> Usando tarball existente: $BUILD_DIR/$OMNET_TARBALL"
+  fi
+
+  echo ">>> Descomprimiendo..."
+  tar xzf "$BUILD_DIR/$OMNET_TARBALL" -C "$BUILD_DIR"
+
+  # Venv y dependencias Python para la compilación
+  echo ">>> Creando venv y dependencias Python para la compilación..."
+  python3 -m venv "$SRC_DIR/venv"
+  "$SRC_DIR/venv/bin/pip" install --upgrade pip -q
+  "$SRC_DIR/venv/bin/pip" install numpy pandas matplotlib scipy seaborn posix_ipc -q
+
+  # Compilar OMNeT++
+  echo ">>> Configurando y compilando OMNeT++..."
+  cd "$SRC_DIR"
+  source setenv 2>/dev/null || true
+  export PATH="$SRC_DIR/venv/bin:$PATH"
+  export VIRTUAL_ENV="$SRC_DIR/venv"
+  sed -i 's/WITH_OSG=yes/WITH_OSG=no/' configure.user
+  ./configure --prefix="$INSTALL_PREFIX"
+  NPROC=$(nproc)
+  echo ">>> Compilando con $NPROC hilos..."
+  make -j"$NPROC"
+fi
 
 mkdir -p "$APPDIR"
-
-# Venv y dependencias Python para la compilación
-echo ">>> Creando venv y dependencias Python para la compilación..."
-python3 -m venv "$SRC_DIR/venv"
-"$SRC_DIR/venv/bin/pip" install --upgrade pip -q
-"$SRC_DIR/venv/bin/pip" install numpy pandas matplotlib scipy seaborn posix_ipc -q
-
-# Compilar OMNeT++
-echo ">>> Configurando y compilando OMNeT++..."
-cd "$SRC_DIR"
-source setenv 2>/dev/null || true
-export PATH="$SRC_DIR/venv/bin:$PATH"
-export VIRTUAL_ENV="$SRC_DIR/venv"
-sed -i 's/WITH_OSG=yes/WITH_OSG=no/' configure.user
-./configure --prefix="$INSTALL_PREFIX"
-NPROC=$(nproc)
-echo ">>> Compilando con $NPROC hilos..."
-make -j"$NPROC"
 
 # Copiar árbol al AppDir
 echo ">>> Copiando árbol de compilación al AppDir..."
@@ -169,14 +178,14 @@ python3 -m venv "$ROOT/venv"
 "$ROOT/venv/bin/pip" install --upgrade pip -q
 "$ROOT/venv/bin/pip" install numpy pandas matplotlib scipy seaborn posix_ipc -q
 
-# AppRun: punto de entrada del AppImage (APPDIR = directorio donde está AppRun una vez montado)
-# La IDE escribe en ide/ (error.log, etc.); el AppImage está en solo lectura, así que
-# para la IDE copiamos el árbol a un directorio escribible en el primer arranque.
-echo ">>> Creando AppRun..."
+# AppRun, icono y .desktop antes de linuxdeploy (evita WARNING y permite integración)
+echo ">>> Creando AppRun, icono y .desktop..."
 cat > "$APPDIR/AppRun" << 'APPRUN'
 #!/bin/bash
 set -e
 APPDIR="$(dirname "$(readlink -f "$0")")"
+# Librerías empaquetadas (Qt5, etc.) en el AppImage
+export LD_LIBRARY_PATH="${APPDIR}/usr/lib:${APPDIR}/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
 READONLY_ROOT="${APPDIR}/opt/omnetpp-6.0.1"
 WRITABLE_BASE="${XDG_DATA_HOME:-$HOME/.local/share}"
 WRITABLE_OMNET="${WRITABLE_BASE}/omnetpp-6.0.1"
@@ -198,12 +207,9 @@ export OMNETPP_ROOT="$WRITABLE_OMNET"
 export PATH="${OMNETPP_ROOT}/bin:${PATH}"
 exec "${OMNETPP_ROOT}/bin/omnetpp" "$@"
 APPRUN
-# Sustituir la versión en AppRun (en el heredoc va 6.0.1 por defecto)
 sed -i "s|omnetpp-6\.0\.1|omnetpp-${OMNET_VERSION}|g" "$APPDIR/AppRun"
 chmod +x "$APPDIR/AppRun"
 
-# Icono para el AppDir
-echo ">>> Configurando icono y .desktop..."
 OMNET_ICON_SRC=""
 [[ -f "$ROOT/images/logo/logo128.png" ]] && OMNET_ICON_SRC="$ROOT/images/logo/logo128.png"
 [[ -z "$OMNET_ICON_SRC" ]] && [[ -f "$ROOT/images/logo/logo128s.png" ]] && OMNET_ICON_SRC="$ROOT/images/logo/logo128s.png"
@@ -212,11 +218,8 @@ OMNET_ICON_SRC=""
 if [[ -n "$OMNET_ICON_SRC" ]]; then
   cp "$OMNET_ICON_SRC" "$APPDIR/omnetpp.png"
   cp "$OMNET_ICON_SRC" "$APPDIR/.DirIcon"
-else
-  echo ">>> Aviso: no se encontró icono de OMNeT++; el AppImage se generará sin icono propio"
 fi
 
-# .desktop (requerido por appimagetool)
 cat > "$APPDIR/omnetpp.desktop" << EOF
 [Desktop Entry]
 Version=1.0
@@ -228,6 +231,33 @@ Icon=omnetpp
 Terminal=false
 Categories=Development;Science;
 EOF
+
+# Empaquetar dependencias (Qt5, libs) con linuxdeploy (sin --output: solo actualiza AppDir; el .AppImage lo crea appimagetool)
+echo ">>> Empaquetando dependencias con linuxdeploy..."
+LINUXDEPLOY="$BUILD_DIR/linuxdeploy-x86_64.AppImage"
+PLUGIN_QT="$BUILD_DIR/linuxdeploy-plugin-qt-x86_64.AppImage"
+for url in "$LINUXDEPLOY_URL" "$LINUXDEPLOY_PLUGIN_QT_URL"; do
+  f="$BUILD_DIR/$(basename "$url")"
+  if [[ ! -f "$f" ]]; then
+    echo ">>> Descargando $(basename "$f")..."
+    wget -q -O "$f" "$url"
+    chmod +x "$f"
+  fi
+done
+ELF_BINS=()
+for f in "$ROOT/bin"/*; do
+  [[ -f "$f" ]] && [[ -x "$f" ]] && file -b "$f" | grep -q "ELF" && ELF_BINS+=("$f")
+done
+if [[ ${#ELF_BINS[@]} -eq 0 ]]; then
+  echo ">>> Aviso: no se encontraron binarios ELF en $ROOT/bin; se empaquetará solo Qt."
+fi
+LINUXDEPLOY_CMD=("$LINUXDEPLOY" --appdir="$APPDIR" --plugin qt)
+for exe in "${ELF_BINS[@]}"; do LINUXDEPLOY_CMD+=(--executable "$exe"); done
+if [[ ${#ELF_BINS[@]} -gt 0 ]]; then
+  "${LINUXDEPLOY_CMD[@]}"
+else
+  "$LINUXDEPLOY" --appdir="$APPDIR" --plugin qt
+fi
 
 # Descargar appimagetool si no está
 APPIMAGETOOL="$BUILD_DIR/appimagetool-x86_64.AppImage"
@@ -246,7 +276,7 @@ echo ""
 echo ">>> Listo. AppImage creado: $APPIMAGE_OUT"
 echo ">>> Ejecutar: $APPIMAGE_OUT"
 echo ">>> Para simulaciones desde consola: $APPIMAGE_OUT opp_run [opciones]"
-echo ">>> Nota: en el sistema objetivo deben estar instaladas Qt5, Python3 y dependencias (como para el .deb)."
+echo ">>> Incluye Qt5 y dependencias empaquetadas; en el sistema solo se recomienda Python3 (presente en Ubuntu)."
 echo ""
 
 if [[ -n "${CLEAN_BUILD}" ]]; then
