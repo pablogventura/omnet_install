@@ -1,163 +1,163 @@
-# OMNeT++ Install — Scripts de instalación y empaquetado
+# OMNeT++ Install — Installation and packaging scripts
 
-Scripts para instalar y empaquetar **OMNeT++ 6.0.1** en sistemas Linux (Debian/Ubuntu): instalación directa, paquete `.deb` o **AppImage** portable.
+Scripts to install and package **OMNeT++ 6.0.1** on Linux (Debian/Ubuntu): direct installation, `.deb` package, or portable **AppImage**.
 
-[OMNeT++](https://omnetpp.org/) es un framework de simulación discreta por eventos, orientado a redes y sistemas.
-
----
-
-## Resumen de opciones
-
-| Opción | Script | Resultado |
-|--------|--------|-----------|
-| **Instalación directa** | `install_omnet.sh` | OMNeT++ compilado e instalado en el directorio actual |
-| **Paquete .deb** | `build_omnet_deb.sh` | Paquete `.deb` instalable en `/opt/omnetpp-6.0.1` |
-| **AppImage** | `build_omnet_appimage.sh` | Ejecutable portable con Qt y dependencias incluidas |
+[OMNeT++](https://omnetpp.org/) is a discrete event simulation framework for networks and systems.
 
 ---
 
-## Opción 1: Instalación directa
+## Summary of options
 
-Instala OMNeT++ y dependencias en el sistema, compilando desde el tarball oficial.
+| Option | Script | Result |
+|--------|--------|--------|
+| **Direct installation** | `install_omnet.sh` | OMNeT++ built and installed in the current directory |
+| **.deb package** | `build_omnet_deb.sh` | Installable `.deb` package in `/opt/omnetpp-6.0.1` |
+| **AppImage** | `build_omnet_appimage.sh` | Portable executable with Qt and dependencies bundled |
 
-### Requisitos
+---
+
+## Option 1: Direct installation
+
+Installs OMNeT++ and dependencies on the system, building from the official tarball.
+
+### Requirements
 
 - Linux (Debian/Ubuntu)
-- Conexión a Internet
-- Permisos de superusuario (para instalar paquetes)
+- Internet connection
+- Superuser privileges (to install packages)
 
-### Uso
+### Usage
 
 ```bash
-# Descargar y ejecutar (requiere confiar en la fuente)
+# Download and run (requires trusting the source)
 wget -qO- https://raw.githubusercontent.com/pablogventura/omnet_install/main/install_omnet.sh | bash
 ```
 
-Durante la ejecución se pedirá la contraseña de superusuario. Al terminar:
+You will be prompted for the superuser password during execution. When finished:
 
-- OMNeT++ queda en `./omnetpp-6.0.1/`
-- Se crean accesos directos en el menú de aplicaciones
-- Para usar en terminal: `source omnetpp-6.0.1/setenv` y luego `omnetpp` o `opp_run`
+- OMNeT++ is in `./omnetpp-6.0.1/`
+- Application menu shortcuts are created
+- To use from terminal: `source omnetpp-6.0.1/setenv` then `omnetpp` or `opp_run`
 
 ---
 
-## Opción 2: Paquete .deb
+## Option 2: .deb package
 
-Genera un paquete `.deb` que instala OMNeT++ en `/opt/omnetpp-6.0.1` y añade los comandos `omnetpp` y `opp_run` en el PATH (sin necesidad de `source setenv`).
+Builds a `.deb` package that installs OMNeT++ in `/opt/omnetpp-6.0.1` and adds the `omnetpp` and `opp_run` commands to PATH (no need for `source setenv`).
 
-### Requisitos para construir
+### Build requirements
 
 - `dpkg-deb`, `wget`, `tar`
-- Herramientas de compilación (bison, flex, g++, make, etc.); el script puede instalarlas con `-d`
+- Build tools (bison, flex, g++, make, etc.); the script can install them with `-d`
 
-### Uso
+### Usage
 
 ```bash
 chmod +x build_omnet_deb.sh
 
-# Generar el .deb en el directorio actual
+# Generate the .deb in the current directory
 ./build_omnet_deb.sh
 
-# Salida en una carpeta concreta
+# Output to a specific folder
 ./build_omnet_deb.sh ./dist
 
-# Instalar dependencias de compilación y luego generar el .deb
+# Install build dependencies and then generate the .deb
 ./build_omnet_deb.sh -d ./dist
 ```
 
-### Instalar el paquete generado
+### Installing the generated package
 
 ```bash
 sudo dpkg -i omnetpp_6.0.1-1_amd64.deb
-# Si faltan dependencias:
+# If dependencies are missing:
 sudo apt-get install -f
 ```
 
-Tras la instalación:
+After installation:
 
-- OMNeT++ en `/opt/omnetpp-6.0.1`
-- Comandos en PATH: `omnetpp` (IDE), `opp_run` (simulador)
+- OMNeT++ in `/opt/omnetpp-6.0.1`
+- Commands in PATH: `omnetpp` (IDE), `opp_run` (simulator)
 
-### Variables de entorno (build)
+### Environment variables (build)
 
-- **`OMNET_VERSION`**: versión de OMNeT++ (por defecto: `6.0.1`)
-- **`BUILD_DIR`**: directorio temporal de compilación (por defecto: se crea uno con `mktemp -d`)
+- **`OMNET_VERSION`**: OMNeT++ version (default: `6.0.1`)
+- **`BUILD_DIR`**: Temporary build directory (default: created with `mktemp -d`)
 
 ---
 
-## Opción 3: AppImage
+## Option 3: AppImage
 
-Genera un **AppImage** portable de OMNeT++ con Qt5 y dependencias empaquetadas (linuxdeploy + plugin Qt), útil para distribuir o usar sin instalar paquetes en el sistema.
+Builds a portable **AppImage** of OMNeT++ with Qt5 and dependencies bundled (linuxdeploy + Qt plugin), for distribution or use without installing system packages.
 
-### Requisitos para construir
+### Build requirements
 
-- `wget`, `tar`, herramientas de compilación (opcionalmente `-d` para instalarlas)
-- En el sistema destino solo se recomienda tener Python3 (habitual en Ubuntu)
+- `wget`, `tar`, build tools (optionally `-d` to install them)
+- On the target system, Python3 is recommended (common on Ubuntu)
 
-### Uso
+### Usage
 
 ```bash
 chmod +x build_omnet_appimage.sh
 
-# Generar el AppImage en el directorio actual
+# Generate the AppImage in the current directory
 ./build_omnet_appimage.sh
 
-# Salida en una carpeta concreta
+# Output to a specific folder
 ./build_omnet_appimage.sh ./dist
 
-# Instalar dependencias de compilación y luego generar
+# Install build dependencies and then generate
 ./build_omnet_appimage.sh -d ./dist
 ```
 
-### Ejecutar el AppImage
+### Running the AppImage
 
 ```bash
-# Abrir la IDE
+# Open the IDE
 ./OMNeT++-6.0.1-x86_64.AppImage
 
-# Ejecutar simulaciones desde consola
-./OMNeT++-6.0.1-x86_64.AppImage opp_run [opciones]
-./OMNeT++-6.0.1-x86_64.AppImage run [opciones]
+# Run simulations from the console
+./OMNeT++-6.0.1-x86_64.AppImage opp_run [options]
+./OMNeT++-6.0.1-x86_64.AppImage run [options]
 ```
 
-En el primer arranque de la IDE, el AppImage copia OMNeT++ a `~/.local/share/omnetpp-6.0.1` para permitir escritura (workspace, logs, etc.).
+On first IDE launch, the AppImage copies OMNeT++ to `~/.local/share/omnetpp-6.0.1` for writable workspace, logs, etc.
 
-### Variables de entorno (build)
+### Environment variables (build)
 
-- **`OMNET_VERSION`**: versión de OMNeT++ (por defecto: `6.0.1`)
-- **`BUILD_DIR`**: directorio temporal de compilación
-- **`CLEAN_BUILD`**: si está definida, se elimina el directorio de compilación al finalizar
+- **`OMNET_VERSION`**: OMNeT++ version (default: `6.0.1`)
+- **`BUILD_DIR`**: Temporary build directory
+- **`CLEAN_BUILD`**: If set, the build directory is removed when finished
 
 ---
 
-## Dependencias de compilación (opciones 2 y 3)
+## Build dependencies (options 2 and 3)
 
-Los scripts `build_omnet_deb.sh` y `build_omnet_appimage.sh` pueden instalar las dependencias de compilación con la opción **`-d`** o **`--install-deps`**:
+The scripts `build_omnet_deb.sh` and `build_omnet_appimage.sh` can install build dependencies with the **`-d`** or **`--install-deps`** option:
 
 - build-essential, clang, lld, gdb, bison, flex, perl  
 - Qt5 (qtbase5-dev, qt5-qmake, libqt5opengl5-dev, etc.)  
 - libxml2-dev, zlib1g-dev, doxygen, graphviz, xdg-utils  
-- Python3 y venv: numpy, scipy, matplotlib, pandas, seaborn, posix_ipc  
+- Python3 and venv: numpy, scipy, matplotlib, pandas, seaborn, posix_ipc  
 - mpi-default-dev, libstdc++-12-dev  
-- libwebkit2gtk (opcional, para la IDE)
+- libwebkit2gtk (optional, for the IDE)
 
 ---
 
-## Estructura del repositorio
+## Repository structure
 
 ```
 .
-├── install_omnet.sh        # Instalación directa
-├── build_omnet_deb.sh      # Generar paquete .deb
-├── build_omnet_appimage.sh # Generar AppImage
+├── install_omnet.sh        # Direct installation
+├── build_omnet_deb.sh      # Build .deb package
+├── build_omnet_appimage.sh # Build AppImage
 ├── .gitignore
 └── README.md
 ```
 
 ---
 
-## Notas
+## Notes
 
-- **Versión por defecto**: 6.0.1 (configurable con `OMNET_VERSION` en los scripts de build).
-- **Open Scene Graph (OSG)**: se deshabilita en la compilación (`WITH_OSG=no`) para evitar dependencias adicionales.
-- **Python**: los scripts crean un `venv` dentro del árbol de OMNeT++ con numpy, pandas, matplotlib, scipy, seaborn y posix_ipc, requeridos por el framework.
+- **Default version**: 6.0.1 (configurable via `OMNET_VERSION` in the build scripts).
+- **Open Scene Graph (OSG)**: Disabled in the build (`WITH_OSG=no`) to avoid extra dependencies.
+- **Python**: The scripts create a `venv` inside the OMNeT++ tree with numpy, pandas, matplotlib, scipy, seaborn and posix_ipc, required by the framework.

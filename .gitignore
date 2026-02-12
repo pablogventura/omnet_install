@@ -1,10 +1,10 @@
-# Paquetes .deb generados
+# Generated .deb packages
 *.deb
 
-# Directorio de salida típico del script
+# Typical script output directory
 dist/
 
-# Editores e IDE
+# Editors and IDEs
 .idea/
 .vscode/
 *.swp
@@ -14,11 +14,11 @@ dist/
 .DS_Store
 Thumbs.db
 
-# Entornos Python (por si se prueba algo local)
+# Python environments (if testing locally)
 venv/
 .venv/
 
-# Temporales de compilación (por si BUILD_DIR apunta al repo)
+# Build temporaries (if BUILD_DIR points to repo)
 omnetpp-*/
 
 *.AppImage
