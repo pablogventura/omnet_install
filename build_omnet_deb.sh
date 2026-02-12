@@ -153,8 +153,43 @@ python3 -m venv "$ROOT/venv"
 "$ROOT/venv/bin/pip" install --upgrade pip -q
 "$ROOT/venv/bin/pip" install numpy pandas matplotlib scipy seaborn posix_ipc -q
 
-# Crear enlaces en /usr/bin y shortcuts (se pueden instalar en postinst)
-# Por ahora dejamos el árbol en /opt y documentamos que el usuario puede usar setenv
+# Wrapper en /usr/bin/omnetpp para poder ejecutar "omnetpp" en consola sin source setenv
+mkdir -p "$STAGING/usr/bin"
+cat > "$STAGING/usr/bin/omnetpp" << WRAPPER
+#!/bin/bash
+export OMNETPP_ROOT="${INSTALL_PREFIX}"
+export PATH="\${OMNETPP_ROOT}/bin:\$PATH"
+exec "\${OMNETPP_ROOT}/bin/omnetpp" "\$@"
+WRAPPER
+chmod 755 "$STAGING/usr/bin/omnetpp"
+
+# Wrapper opp_run para que cualquier usuario pueda ejecutar simulaciones sin source setenv
+cat > "$STAGING/usr/bin/opp_run" << WRAPPER
+#!/bin/bash
+export OMNETPP_ROOT="${INSTALL_PREFIX}"
+export PATH="\${OMNETPP_ROOT}/bin:\$PATH"
+exec "\${OMNETPP_ROOT}/bin/opp_run" "\$@"
+WRAPPER
+chmod 755 "$STAGING/usr/bin/opp_run"
+
+# Icono en el menú de aplicaciones: .desktop en /usr/share/applications
+mkdir -p "$STAGING/usr/share/applications"
+OMNET_ICON=""
+[[ -f "$ROOT/ide/icon.png" ]] && OMNET_ICON="${INSTALL_PREFIX}/ide/icon.png"
+[[ -z "$OMNET_ICON" ]] && [[ -f "$ROOT/ide/omnetpp.png" ]] && OMNET_ICON="${INSTALL_PREFIX}/ide/omnetpp.png"
+[[ -z "$OMNET_ICON" ]] && OMNET_ICON="utilities-terminal"
+{
+  echo '[Desktop Entry]'
+  echo 'Version=1.0'
+  echo 'Type=Application'
+  echo 'Name=OMNeT++'
+  echo 'Comment=OMNeT++ Discrete Event Simulation IDE'
+  echo 'Exec=/usr/bin/omnetpp'
+  echo "Icon=$OMNET_ICON"
+  echo 'Terminal=false'
+  echo 'Categories=Development;Science;'
+} > "$STAGING/usr/share/applications/omnetpp.desktop"
+chmod 644 "$STAGING/usr/share/applications/omnetpp.desktop"
 
 # Metadatos del paquete .deb
 DEBIAN_DIR="$STAGING/DEBIAN"
@@ -175,8 +210,7 @@ Maintainer: OMNeT++ Package Builder <omnet@local>
 Description: OMNeT++ Discrete Event Simulator
  OMNeT++ ${OMNET_VERSION} - Network simulation framework.
  Installado en ${INSTALL_PREFIX}.
- Para usar: source ${INSTALL_PREFIX}/setenv
- O ejecutar: ${INSTALL_PREFIX}/bin/opp_run (y demás binarios en bin/)
+ Comandos en PATH: omnetpp (IDE), opp_run (simulador). Sin necesidad de source setenv.
 EOF
 
 # postinst: atajos, permisos y symlinks (INSTALL_PREFIX se expande al generar el script)
@@ -188,14 +222,8 @@ set -e
 [ -d "${INSTALL_PREFIX}/bin" ] && chmod +x "${INSTALL_PREFIX}/bin"/* 2>/dev/null || true
 # La IDE escribe error.log y otros en ide/; permitir escritura a todos los usuarios
 [ -d "${INSTALL_PREFIX}/ide" ] && chmod -R a+w "${INSTALL_PREFIX}/ide" 2>/dev/null || true
-# Crear symlink para opp_run si existe el directorio
-if [ -d "${INSTALL_PREFIX}" ] && [ -x "${INSTALL_PREFIX}/bin/opp_run" ] && [ ! -e /usr/bin/opp_run ]; then
-    ln -sf "${INSTALL_PREFIX}/bin/opp_run" /usr/bin/opp_run 2>/dev/null || true
-fi
-# Actualizar base de datos de escritorio si hay .desktop
-if [ -d "${INSTALL_PREFIX}/share/applications" ]; then
-    command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database /usr/share/applications 2>/dev/null || true
-fi
+# Actualizar menú de aplicaciones para que aparezca el icono de OMNeT++
+command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database /usr/share/applications 2>/dev/null || true
 POSTINST
 
 chmod 755 "$DEBIAN_DIR/postinst"
