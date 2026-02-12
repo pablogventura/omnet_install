@@ -195,16 +195,19 @@ WRAPPER
 chmod 755 "$STAGING/usr/bin/opp_run"
 
 # Icono en el menú de aplicaciones: .desktop en /usr/share/applications
+# Prioridad: logo oficial (images/logo/), luego ide/, luego genérico
 mkdir -p "$STAGING/usr/share/applications"
 OMNET_ICON=""
-[[ -f "$ROOT/ide/icon.png" ]] && OMNET_ICON="${INSTALL_PREFIX}/ide/icon.png"
+[[ -f "$ROOT/images/logo/logo128.png" ]] && OMNET_ICON="${INSTALL_PREFIX}/images/logo/logo128.png"
+[[ -z "$OMNET_ICON" ]] && [[ -f "$ROOT/images/logo/logo128s.png" ]] && OMNET_ICON="${INSTALL_PREFIX}/images/logo/logo128s.png"
+[[ -z "$OMNET_ICON" ]] && [[ -f "$ROOT/ide/icon.png" ]] && OMNET_ICON="${INSTALL_PREFIX}/ide/icon.png"
 [[ -z "$OMNET_ICON" ]] && [[ -f "$ROOT/ide/omnetpp.png" ]] && OMNET_ICON="${INSTALL_PREFIX}/ide/omnetpp.png"
 [[ -z "$OMNET_ICON" ]] && OMNET_ICON="utilities-terminal"
 {
   echo '[Desktop Entry]'
   echo 'Version=1.0'
   echo 'Type=Application'
-  echo 'Name=OMNeT++'
+  echo "Name=OMNeT++ ${OMNET_VERSION} IDE"
   echo 'Comment=OMNeT++ Discrete Event Simulation IDE'
   echo 'Exec=/usr/bin/omnetpp'
   echo "Icon=$OMNET_ICON"
