@@ -20,3 +20,5 @@ venv/
 
 # Temporales de compilación (por si BUILD_DIR apunta al repo)
 omnetpp-*/
+
+*.AppImage
