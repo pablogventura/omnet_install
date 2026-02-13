@@ -172,6 +172,17 @@ done < <(grep -rZl --fixed-strings "/tmp/tmp." "$ROOT" 2>/dev/null)
 [[ -f "$ROOT/setenv" ]] && chmod +x "$ROOT/setenv"
 [[ -d "$ROOT/bin" ]] && chmod +x "$ROOT/bin"/* 2>/dev/null || true
 
+# Eclipse IDE needs SWT native libs in java.library.path (Ubuntu 22.04 etc.)
+SWT_PLUGIN=$(find "$ROOT/ide/plugins" -maxdepth 1 -type d -name 'org.eclipse.swt.gtk.linux.x86_64*' 2>/dev/null | head -1)
+if [[ -n "$SWT_PLUGIN" ]] && [[ -f "$ROOT/ide/eclipse.ini" ]]; then
+  SWT_NAME="$(basename "$SWT_PLUGIN")"
+  echo ">>> Adding SWT plugin to java.library.path (eclipse.ini): plugins/$SWT_NAME"
+  # Insert -Djava.library.path=plugins/... after -vmargs so Eclipse finds libswt-pi4-gtk*.so
+  if ! grep -q "java.library.path" "$ROOT/ide/eclipse.ini" 2>/dev/null; then
+    sed -i "/^-vmargs$/a -Djava.library.path=plugins/$SWT_NAME" "$ROOT/ide/eclipse.ini"
+  fi
+fi
+
 # Venv in the AppDir
 echo ">>> Configuring Python environment (venv) in the AppDir..."
 python3 -m venv "$ROOT/venv"
@@ -202,6 +213,22 @@ if [[ ! -d "$WRITABLE_OMNET/bin" ]]; then
   echo "First run: copying OMNeT++ to ${WRITABLE_OMNET} (this may take a moment)..."
   mkdir -p "$WRITABLE_OMNET"
   cp -a "$READONLY_ROOT"/* "$WRITABLE_OMNET/"
+fi
+# So the launcher reads config from the writable copy (not the AppImage mount), fix /opt/omnetpp-* in key files
+for f in "$WRITABLE_OMNET/bin/omnetpp" "$WRITABLE_OMNET/ide/eclipse.ini" "$WRITABLE_OMNET/ide/configuration/config.ini"; do
+  [[ -f "$f" ]] && sed -i "s|/opt/omnetpp-|$WRITABLE_BASE/omnetpp-|g" "$f"
+done
+# Ensure Eclipse finds SWT native libs (fixes "Could not load SWT library" on Ubuntu 22.04 etc.)
+SWT_PLUGIN=$(find "$WRITABLE_OMNET/ide/plugins" -maxdepth 1 -type d -name 'org.eclipse.swt.gtk.linux.x86_64*' 2>/dev/null | head -1)
+if [[ -n "$SWT_PLUGIN" ]]; then
+  export LD_LIBRARY_PATH="$SWT_PLUGIN:${LD_LIBRARY_PATH}"
+  export JAVA_TOOL_OPTIONS="-Djava.library.path=$SWT_PLUGIN"
+  ECLIPSE_INI="$WRITABLE_OMNET/ide/eclipse.ini"
+  if [[ -f "$ECLIPSE_INI" ]]; then
+    grep -v "java.library.path" "$ECLIPSE_INI" > "${ECLIPSE_INI}.tmp" && mv "${ECLIPSE_INI}.tmp" "$ECLIPSE_INI"
+    SYS_LIBS="/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib"
+    sed -i "\|-vmargs|a -Djava.library.path=$SWT_PLUGIN:$SYS_LIBS" "$ECLIPSE_INI"
+  fi
 fi
 export OMNETPP_ROOT="$WRITABLE_OMNET"
 export PATH="${OMNETPP_ROOT}/bin:${PATH}"
