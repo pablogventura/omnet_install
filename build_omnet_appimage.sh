@@ -9,6 +9,17 @@
 # Bundles dependencies (Qt5, system libs) via linuxdeploy + Qt plugin so no
 # packages need to be installed on Ubuntu. Python3 and venv remain in the OMNeT++ tree.
 #
+# IDE launch chain (for SWT / java.library.path troubleshooting):
+#   bin/omnetpp (script) -> invokes Eclipse Equinox launcher (e.g. java -jar
+#   ide/plugins/org.eclipse.equinox.launcher_*.jar). The launcher reads eclipse.ini
+#   from next to the executable/jar and builds java.library.path; it often includes
+#   the app's usr/lib. We copy SWT native libs (libswt-pi4-gtk*.so) into AppDir/usr/lib
+#   at build time so the JVM finds them without relying on the writable copy's config.
+#
+# First IDE run: OMNeT++ is copied to ~/.local/share/omnetpp-<version> so the IDE
+# can write to ide/ (error.log, workspace). Set DEBUG_OMNET_APPIMAGE=1 to print
+# paths and eclipse.ini presence when testing.
+#
 
 set -e
 
@@ -137,7 +148,8 @@ else
   source setenv 2>/dev/null || true
   export PATH="$SRC_DIR/venv/bin:$PATH"
   export VIRTUAL_ENV="$SRC_DIR/venv"
-  sed -i 's/WITH_OSG=yes/WITH_OSG=no/' configure.user
+  if [ -f configure.user.dist ] && [ ! -f configure.user ]; then cp configure.user.dist configure.user; fi
+  if [ -f configure.user ]; then sed -i 's/WITH_OSG=yes/WITH_OSG=no/' configure.user; fi
   ./configure --prefix="$INSTALL_PREFIX"
   NPROC=$(nproc)
   echo ">>> Building with $NPROC threads..."
@@ -214,21 +226,30 @@ if [[ ! -d "$WRITABLE_OMNET/bin" ]]; then
   mkdir -p "$WRITABLE_OMNET"
   cp -a "$READONLY_ROOT"/* "$WRITABLE_OMNET/"
 fi
-# So the launcher reads config from the writable copy (not the AppImage mount), fix /opt/omnetpp-* in key files
+# So the launcher reads config from the writable copy (not the AppImage mount)
+# 1) Fix symlinks that point to /opt/omnetpp-* (cp -a preserves them; they would point to mount)
+while IFS= read -r -d '' link; do
+  target=$(readlink "$link" 2>/dev/null)
+  if [[ "$target" == /opt/omnetpp-* ]]; then
+    rel=$(echo "$target" | sed 's|^/opt/omnetpp-[^/]*/||')
+    ln -sfn "$WRITABLE_OMNET/$rel" "$link" 2>/dev/null || true
+  fi
+done < <(find "$WRITABLE_OMNET" -type l -print0 2>/dev/null)
+# 2) Replace /opt/omnetpp- in key files so the launcher uses the writable copy
 for f in "$WRITABLE_OMNET/bin/omnetpp" "$WRITABLE_OMNET/ide/eclipse.ini" "$WRITABLE_OMNET/ide/configuration/config.ini"; do
   [[ -f "$f" ]] && sed -i "s|/opt/omnetpp-|$WRITABLE_BASE/omnetpp-|g" "$f"
 done
-# Ensure Eclipse finds SWT native libs (fixes "Could not load SWT library" on Ubuntu 22.04 etc.)
+# Optional: prepend writable SWT plugin to LD_LIBRARY_PATH (SWT is also in AppImage usr/lib)
 SWT_PLUGIN=$(find "$WRITABLE_OMNET/ide/plugins" -maxdepth 1 -type d -name 'org.eclipse.swt.gtk.linux.x86_64*' 2>/dev/null | head -1)
-if [[ -n "$SWT_PLUGIN" ]]; then
-  export LD_LIBRARY_PATH="$SWT_PLUGIN:${LD_LIBRARY_PATH}"
-  export JAVA_TOOL_OPTIONS="-Djava.library.path=$SWT_PLUGIN"
-  ECLIPSE_INI="$WRITABLE_OMNET/ide/eclipse.ini"
-  if [[ -f "$ECLIPSE_INI" ]]; then
-    grep -v "java.library.path" "$ECLIPSE_INI" > "${ECLIPSE_INI}.tmp" && mv "${ECLIPSE_INI}.tmp" "$ECLIPSE_INI"
-    SYS_LIBS="/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib"
-    sed -i "\|-vmargs|a -Djava.library.path=$SWT_PLUGIN:$SYS_LIBS" "$ECLIPSE_INI"
-  fi
+[[ -n "$SWT_PLUGIN" ]] && export LD_LIBRARY_PATH="$SWT_PLUGIN:${LD_LIBRARY_PATH}"
+# Debug: print paths and config when testing IDE failures (e.g. SWT, java.library.path)
+if [[ "${DEBUG_OMNET_APPIMAGE:-0}" == "1" ]]; then
+  echo "DEBUG_OMNET_APPIMAGE: APPDIR=$APPDIR"
+  echo "DEBUG_OMNET_APPIMAGE: READONLY_ROOT=$READONLY_ROOT"
+  echo "DEBUG_OMNET_APPIMAGE: WRITABLE_OMNET=$WRITABLE_OMNET"
+  echo "DEBUG_OMNET_APPIMAGE: eclipse.ini exists=$([[ -f "$WRITABLE_OMNET/ide/eclipse.ini" ]] && echo yes || echo no)"
+  echo "DEBUG_OMNET_APPIMAGE: SWT plugin=$SWT_PLUGIN"
+  echo "DEBUG_OMNET_APPIMAGE: usr/lib SWT libs: $(find "$APPDIR/usr/lib" -maxdepth 1 -name 'libswt-pi4*.so' 2>/dev/null | wc -l)"
 fi
 export OMNETPP_ROOT="$WRITABLE_OMNET"
 export PATH="${OMNETPP_ROOT}/bin:${PATH}"
@@ -286,6 +307,36 @@ else
   "$LINUXDEPLOY" --appdir="$APPDIR" --plugin qt
 fi
 
+# Copy Eclipse SWT native libs into usr/lib so the JVM finds them (java.library.path already includes usr/lib from the launcher)
+SWT_COUNT=0
+if [[ -d "$APPDIR/usr/lib" ]]; then
+  SWT_PLUGIN_DIR=$(find "$ROOT/ide/plugins" -maxdepth 1 -type d -name 'org.eclipse.swt.gtk.linux.x86_64*' 2>/dev/null | head -1)
+  if [[ -n "$SWT_PLUGIN_DIR" ]]; then
+    echo ">>> Copying SWT native libs (from plugin dir) to usr/lib for Eclipse IDE..."
+    cp -n "$SWT_PLUGIN_DIR"/*.so "$APPDIR/usr/lib/" 2>/dev/null || true
+    find "$SWT_PLUGIN_DIR" -name "*.so" -type f 2>/dev/null | while read -r so; do
+      cp -n "$so" "$APPDIR/usr/lib/" 2>/dev/null || true
+    done
+  fi
+  # Fallback: SWT may be shipped as a .jar with .so inside (Eclipse unpacks at runtime; we need them in usr/lib for AppImage)
+  if [[ $(find "$APPDIR/usr/lib" -maxdepth 1 -name 'libswt-pi4*.so' 2>/dev/null | wc -l) -eq 0 ]]; then
+    for swt_jar in "$ROOT/ide/plugins"/org.eclipse.swt.gtk.linux.x86_64*.jar; do
+      [[ -f "$swt_jar" ]] || continue
+      if unzip -l "$swt_jar" 2>/dev/null | grep -q '\.so$'; then
+        echo ">>> Extracting SWT native libs from $(basename "$swt_jar") into usr/lib..."
+        unzip -o -j "$swt_jar" "*.so" -d "$APPDIR/usr/lib" 2>/dev/null || true
+        break
+      fi
+    done
+  fi
+  SWT_COUNT=$(find "$APPDIR/usr/lib" -maxdepth 1 -name 'libswt-pi4*.so' 2>/dev/null | wc -l)
+  if [[ "${SWT_COUNT:-0}" -eq 0 ]]; then
+    echo ">>> Warning: no libswt-pi4*.so found in usr/lib; IDE may fail with 'Could not load SWT library' on first run."
+  else
+    echo ">>> SWT libs in usr/lib: $(find "$APPDIR/usr/lib" -maxdepth 1 -name 'libswt-pi4*.so' -print0 2>/dev/null | xargs -0 -I{} basename {} | tr '\n' ' ')"
+  fi
+fi
+
 # Download appimagetool if not present
 APPIMAGETOOL="$BUILD_DIR/appimagetool-x86_64.AppImage"
 if [[ ! -f "$APPIMAGETOOL" ]]; then
@@ -304,6 +355,11 @@ echo ">>> Done. AppImage created: $APPIMAGE_OUT"
 echo ">>> Run: $APPIMAGE_OUT"
 echo ">>> For console simulations: $APPIMAGE_OUT opp_run [options]"
 echo ">>> Includes Qt5 and bundled dependencies; on the system only Python3 is recommended (present on Ubuntu)."
+echo ""
+echo ">>> Verification checklist:"
+echo ">>>   - usr/lib contains SWT libs: $(find "$APPDIR/usr/lib" -maxdepth 1 -name 'libswt-pi4*.so' 2>/dev/null | wc -l) libswt-pi4*.so"
+echo ">>>   - First IDE run copies to ~/.local/share/omnetpp-${OMNET_VERSION}; test on Ubuntu 22.04/24.04."
+echo ">>>   - If IDE fails with 'Could not load SWT library': ensure build showed SWT libs in usr/lib; run with DEBUG_OMNET_APPIMAGE=1 to inspect paths."
 echo ""
 
 if [[ -n "${CLEAN_BUILD}" ]]; then

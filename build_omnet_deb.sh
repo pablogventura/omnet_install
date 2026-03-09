@@ -133,7 +133,8 @@ source setenv 2>/dev/null || true
 # Activate venv so python3 has posix_ipc and the rest
 export PATH="$SRC_DIR/venv/bin:$PATH"
 export VIRTUAL_ENV="$SRC_DIR/venv"
-sed -i 's/WITH_OSG=yes/WITH_OSG=no/' configure.user
+if [ -f configure.user.dist ] && [ ! -f configure.user ]; then cp configure.user.dist configure.user; fi
+if [ -f configure.user ]; then sed -i 's/WITH_OSG=yes/WITH_OSG=no/' configure.user; fi
 ./configure --prefix="$INSTALL_PREFIX"
 NPROC=$(nproc)
 echo ">>> Building with $NPROC threads..."

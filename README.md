@@ -38,6 +38,7 @@ You will be prompted for the superuser password during execution. When finished:
 - OMNeT++ is in `./omnetpp-6.0.1/`
 - Application menu shortcuts are created
 - To use from terminal: `source omnetpp-6.0.1/setenv` then `omnetpp` or `opp_run`
+- If the IDE does not appear in PATH, open a new terminal or launch **OMNeT++** from the applications menu
 
 ---
 
@@ -122,11 +123,33 @@ chmod +x build_omnet_appimage.sh
 
 On first IDE launch, the AppImage copies OMNeT++ to `~/.local/share/omnetpp-6.0.1` for writable workspace, logs, etc.
 
+### AppImage troubleshooting
+
+- **First run**: The IDE copy to `~/.local/share/omnetpp-6.0.1` can take a moment; subsequent launches are faster.
+- **"Could not load SWT library"** (e.g. on Ubuntu 22.04): The build script copies SWT native libs into the AppImage’s `usr/lib`. After building, the script prints how many `libswt-pi4*.so` files are in `usr/lib`; if that count is 0, the IDE may fail. Run the AppImage with **`DEBUG_OMNET_APPIMAGE=1`** to print paths and config (e.g. `DEBUG_OMNET_APPIMAGE=1 ./OMNeT++-6.0.1-x86_64.AppImage`).
+- **Other native errors** (e.g. missing symbols, GLIBC version): SWT depends on GTK/glibc on the host; document the distro and error for support. For maximum portability, the target distro should be similar to the build distro.
+
 ### Environment variables (build)
 
 - **`OMNET_VERSION`**: OMNeT++ version (default: `6.0.1`)
 - **`BUILD_DIR`**: Temporary build directory
 - **`CLEAN_BUILD`**: If set, the build directory is removed when finished
+
+### Environment variables (runtime)
+
+- **`DEBUG_OMNET_APPIMAGE=1`**: Print APPDIR, WRITABLE_OMNET, eclipse.ini presence and SWT lib count before launching the IDE (for troubleshooting).
+
+### Test AppImage in Ubuntu 22.04 (Docker)
+
+To check that the AppImage has SWT libs and runs in a clean Ubuntu 22.04 environment:
+
+```bash
+./test_appimage_docker.sh
+# Or with an explicit path:
+./test_appimage_docker.sh ./dist/OMNeT++-6.0.1-x86_64.AppImage
+```
+
+Requires Docker. The script runs the AppImage inside an `ubuntu:22.04` container and verifies that `usr/lib` contains SWT libs, then runs `opp_run --version`.
 
 ---
 
@@ -150,6 +173,7 @@ The scripts `build_omnet_deb.sh` and `build_omnet_appimage.sh` can install build
 ├── install_omnet.sh        # Direct installation
 ├── build_omnet_deb.sh      # Build .deb package
 ├── build_omnet_appimage.sh # Build AppImage
+├── test_appimage_docker.sh # Test AppImage in Ubuntu 22.04 (Docker)
 ├── .gitignore
 └── README.md
 ```

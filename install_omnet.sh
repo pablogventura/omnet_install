@@ -40,7 +40,13 @@ cd omnetpp-6.0.1
 source setenv
 
 # Disable Open Scene Graph (OSG)
-sed -i 's/WITH_OSG=yes/WITH_OSG=no/' configure.user
+# configure.user puede no existir (el tarball trae configure.user.dist)
+if [ -f configure.user.dist ] && [ ! -f configure.user ]; then
+  cp configure.user.dist configure.user
+fi
+if [ -f configure.user ]; then
+  sed -i 's/WITH_OSG=yes/WITH_OSG=no/' configure.user
+fi
 
 # Configure OMNeT++
 ./configure
@@ -51,6 +57,8 @@ make -j$(nproc)
 # Install OMNeT++ shortcuts
 make install-shortcuts
 
-# Allow PTRACE access for debugging
-sudo sed -i 's/kernel.yama.ptrace_scope = 1/kernel.yama.ptrace_scope = 0/' /etc/sysctl.d/10-ptrace.conf
+# Allow PTRACE access for debugging (solo si existe el archivo en esta distro)
+if [ -f /etc/sysctl.d/10-ptrace.conf ]; then
+  sudo sed -i 's/kernel.yama.ptrace_scope = 1/kernel.yama.ptrace_scope = 0/' /etc/sysctl.d/10-ptrace.conf
+fi
 
