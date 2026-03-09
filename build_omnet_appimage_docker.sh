@@ -5,6 +5,7 @@
 #
 # Usage: ./build_omnet_appimage_docker.sh [output_directory]
 #   Default: AppImage is written to the current directory.
+#   Version: set OMNET_VERSION (default 6.3.0), e.g. OMNET_VERSION=6.0.1 ./build_omnet_appimage_docker.sh
 #
 # Requires: Docker. First run takes ~20–40 min (image, deps, build and linuxdeploy).
 #
