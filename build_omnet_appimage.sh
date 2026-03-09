@@ -141,6 +141,7 @@ else
   python3 -m venv "$SRC_DIR/venv"
   "$SRC_DIR/venv/bin/pip" install --upgrade pip -q
   "$SRC_DIR/venv/bin/pip" install numpy pandas matplotlib scipy seaborn posix_ipc -q
+  [[ -f "$SRC_DIR/python/requirements.txt" ]] && "$SRC_DIR/venv/bin/pip" install -r "$SRC_DIR/python/requirements.txt" -q
 
   # Build OMNeT++
   echo ">>> Configuring and building OMNeT++..."
@@ -280,7 +281,15 @@ Terminal=false
 Categories=Development;Science;
 EOF
 
-# Bundle dependencies (Qt5, libs) with linuxdeploy (no --output: only updates AppDir; appimagetool creates the .AppImage)
+# Bundle dependencies (Qt, libs) with linuxdeploy (no --output: only updates AppDir; appimagetool creates the .AppImage)
+# OMNeT++ 6.2+ uses Qt6; linuxdeploy-plugin-qt uses QMAKE env to find qmake — point to Qt6 when available
+if command -v qmake6 >/dev/null 2>&1; then
+  export QMAKE="$(command -v qmake6)"
+  echo ">>> Using Qt6 for linuxdeploy: QMAKE=$QMAKE"
+elif [[ -x /usr/lib/qt6/bin/qmake ]]; then
+  export QMAKE=/usr/lib/qt6/bin/qmake
+  echo ">>> Using Qt6 for linuxdeploy: QMAKE=$QMAKE"
+fi
 echo ">>> Bundling dependencies with linuxdeploy..."
 LINUXDEPLOY="$BUILD_DIR/linuxdeploy-x86_64.AppImage"
 PLUGIN_QT="$BUILD_DIR/linuxdeploy-plugin-qt-x86_64.AppImage"

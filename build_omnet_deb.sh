@@ -125,6 +125,9 @@ echo ">>> Creating venv and Python dependencies for the build..."
 python3 -m venv "$SRC_DIR/venv"
 "$SRC_DIR/venv/bin/pip" install --upgrade pip -q
 "$SRC_DIR/venv/bin/pip" install numpy pandas matplotlib scipy seaborn posix_ipc -q
+if [[ -f "$SRC_DIR/python/requirements.txt" ]]; then
+  "$SRC_DIR/venv/bin/pip" install -r "$SRC_DIR/python/requirements.txt" -q
+fi
 
 # Build OMNeT++ (with venv active so configure finds Python modules)
 echo ">>> Configuring and building OMNeT++..."

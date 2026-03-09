@@ -215,14 +215,16 @@ For `--browser` and `--browser-check` the image **accetto/ubuntu-vnc-xfce-g3** (
 
 ## Build dependencies (options 2 and 3)
 
-The scripts `build_omnet_deb.sh` and `build_omnet_appimage.sh` can install build dependencies with the **`-d`** or **`--install-deps`** option:
+The scripts `build_omnet_deb.sh` and `build_omnet_appimage.sh` can install build dependencies with the **`-d`** or **`--install-deps`** option. The Docker build scripts (`build_omnet_deb_docker.sh`, `build_omnet_appimage_docker.sh`) install the same deps inside the container.
 
-- build-essential, clang, lld, gdb, bison, flex, perl  
-- Qt5 (qtbase5-dev, qt5-qmake, libqt5opengl5-dev, etc.)  
-- libxml2-dev, zlib1g-dev, doxygen, graphviz, xdg-utils  
-- Python3 and venv: numpy, scipy, matplotlib, pandas, seaborn, posix_ipc  
-- mpi-default-dev, libstdc++-12-dev  
+- build-essential, clang, lld, gdb, bison, flex, perl, **pkg-config**
+- **Qt6** (qt6-base-dev, libqt6opengl6-dev) for OMNeT++ 6.2+; Qt5 (qtbase5-dev, qt5-qmake, libqt5opengl5-dev) kept for compatibility
+- libxml2-dev, zlib1g-dev, doxygen, graphviz, xdg-utils
+- Python3 and venv: numpy, scipy, matplotlib, pandas, seaborn, posix_ipc; for 6.2+ the scripts also install **`python/requirements.txt`** from the OMNeT++ source (e.g. ipython) so `configure` passes
+- mpi-default-dev, libstdc++-12-dev
 - libwebkit2gtk (optional, for the IDE)
+
+If you build **without** Docker, install Qt6 (and pkg-config) on your system when targeting OMNeT++ 6.3.0; otherwise `configure` will fail with "Could not find moc, rcc, and uic for Qt6" or "pkg-config program not found".
 
 ---
 
@@ -269,6 +271,7 @@ In this repository that information is in this README; if you publish the binari
 ## Notes
 
 - **Default version**: 6.3.0. Configurable in **all** scripts (build, install and tests) via the **`OMNET_VERSION`** environment variable, e.g. `OMNET_VERSION=6.0.1 ./build_omnet_deb.sh`.
+- **OMNeT++ 6.2+ (e.g. 6.3.0)** needs **Qt6** (qt6-base-dev), **pkg-config**, and Python packages from the source tree’s `python/requirements.txt` (e.g. ipython). The scripts handle this when you use the `-d` option or the Docker build scripts.
 - **Open Scene Graph (OSG)**: Disabled in the build (`WITH_OSG=no`) to avoid extra dependencies.
-- **Python**: The scripts create a `venv` inside the OMNeT++ tree with numpy, pandas, matplotlib, scipy, seaborn and posix_ipc, required by the framework.
+- **Python**: The scripts create a `venv` inside the OMNeT++ tree with numpy, pandas, matplotlib, scipy, seaborn and posix_ipc; for 6.2+ they also install from `python/requirements.txt` so the IDE/configure checks pass.
 - **New OMNeT++ releases**: The workflow [Check OMNeT++ release](.github/workflows/check-omnet-release.yml) runs daily and opens an issue when [omnetpp/omnetpp](https://github.com/omnetpp/omnetpp) publishes a new release, so you can verify the scripts with that version. You can also trigger it manually from the Actions tab.

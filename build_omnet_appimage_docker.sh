@@ -34,10 +34,10 @@ docker run --rm \
     echo ">>> Installing build dependencies..."
     apt-get update -qq
     apt-get install -y -qq \
-      build-essential clang lld gdb bison flex perl \
+      build-essential clang lld gdb bison flex perl pkg-config \
       python3 python3-pip python3-venv \
-      qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools \
-      libqt5opengl5-dev libxml2-dev zlib1g-dev doxygen graphviz xdg-utils \
+      qt6-base-dev qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools \
+      libqt6opengl6-dev libqt5opengl5-dev libxml2-dev zlib1g-dev doxygen graphviz xdg-utils \
       python3-numpy python3-scipy python3-matplotlib python3-pandas python3-seaborn \
       mpi-default-dev libstdc++-12-dev \
       wget libfuse2 unzip > /dev/null
