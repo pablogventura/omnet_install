@@ -1,26 +1,24 @@
 #!/bin/bash
 #
-# Test OMNeT++ with interfaz gráfica, de dos maneras:
+# Test OMNeT++ with GUI in two ways:
 #
-#   --x11       Usa la pantalla de tu máquina (X11). La ventana de OMNeT++ se abre en tu escritorio.
-#               Requiere: xhost +local:docker (una vez) y DISPLAY en el host.
+#   --x11       Use your machine's display (X11). The OMNeT++ window opens on your desktop.
+#               Requires: xhost +local:docker (once) and DISPLAY on the host.
 #
-#   --browser   Arranca un escritorio en un contenedor y lo sirve por noVNC. Abrís http://localhost:6901
-#               en el navegador y ves el escritorio; ahí podés abrir una terminal y ejecutar OMNeT++
-#               para comprobar que la IDE carga.
+#   --browser   Start a desktop in a container and serve it via noVNC. Open http://localhost:6901
+#               in the browser to see the desktop; open a terminal and run OMNeT++ to verify the IDE loads.
 #
-#   --browser-check  Igual que --browser pero además hace un chequeo automático: lanza la IDE en el
-#                    contenedor, espera y comprueba si apareció una ventana con "OMNeT" (wmctrl).
-#                    Útil para CI o para no tener que mirar el navegador.
+#   --browser-check  Same as --browser but runs an automatic check: launches the IDE in the container,
+#                    waits and checks with wmctrl if a window with "OMNeT" appeared. Useful for CI.
 #
-# Uso:
-#   ./test_gui_docker.sh --x11 [ruta/al/AppImage]
-#   ./test_gui_docker.sh --browser [ruta/al/AppImage]
-#   ./test_gui_docker.sh --browser-check [ruta/al/AppImage]
-#   ./test_gui_docker.sh --browser .deb [ruta/al/paquete.deb]
+# Usage:
+#   ./test_gui_docker.sh --x11 [path/to/AppImage]
+#   ./test_gui_docker.sh --browser [path/to/AppImage]
+#   ./test_gui_docker.sh --browser-check [path/to/AppImage]
+#   ./test_gui_docker.sh --browser .deb [path/to/package.deb]
 #
-# Por defecto se usa el AppImage en el directorio actual (OMNeT++-6.0.1-x86_64.AppImage).
-# Requiere: Docker. Para --browser/--browser-check se usa la imagen accetto/ubuntu-vnc-xfce-g3.
+# Default: AppImage in current directory (OMNeT++-6.0.1-x86_64.AppImage).
+# Requires: Docker. For --browser/--browser-check the image accetto/ubuntu-vnc-xfce-g3 is used.
 #
 
 set -e
@@ -48,13 +46,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$MODE" ]]; then
-  echo "Uso: $0 --x11 | --browser | --browser-check [.deb] [ruta/al/archivo]"
+  echo "Usage: $0 --x11 | --browser | --browser-check [.deb] [path/to/file]"
   echo ""
-  echo "  --x11           Ventana en tu pantalla (X11 forwarding)"
-  echo "  --browser       Escritorio en http://localhost:6901 (noVNC); abrís el navegador y ejecutás OMNeT++"
-  echo "  --browser-check Como --browser pero el script comprueba solo si la ventana de OMNeT++ apareció"
+  echo "  --x11           Window on your screen (X11 forwarding)"
+  echo "  --browser       Desktop at http://localhost:6901 (noVNC); open browser and run OMNeT++"
+  echo "  --browser-check Same as --browser but script checks if OMNeT++ window appeared"
   echo ""
-  echo "Ejemplos:"
+  echo "Examples:"
   echo "  $0 --browser ./OMNeT++-6.0.1-x86_64.AppImage"
   echo "  $0 --browser-check"
   echo "  $0 --browser .deb ./omnetpp_6.0.1-1_amd64.deb"
@@ -68,7 +66,7 @@ if [[ "$TYPE" == "deb" ]]; then
   DEB_DIR="$(dirname "$DEB_ABS")"
   DEB_NAME="$(basename "$DEB_ABS")"
   if [[ ! -f "$DEB_ABS" ]]; then
-    echo "Error: .deb no encontrado: $DEB_ABS"
+    echo "Error: .deb not found: $DEB_ABS"
     exit 1
   fi
   APPIMAGE_ABS=""
@@ -77,21 +75,21 @@ else
   APPIMAGE="${FILE_ARG:-$SCRIPT_DIR/OMNeT++-${OMNET_VERSION}-x86_64.AppImage}"
   APPIMAGE_ABS="$(cd "$(dirname "$APPIMAGE")" && pwd)/$(basename "$APPIMAGE")"
   if [[ ! -f "$APPIMAGE_ABS" ]]; then
-    echo "Error: AppImage no encontrado: $APPIMAGE_ABS"
+    echo "Error: AppImage not found: $APPIMAGE_ABS"
     exit 1
   fi
   APPIMAGE_NAME="$(basename "$APPIMAGE_ABS")"
   APPIMAGE_DIR="$(dirname "$APPIMAGE_ABS")"
 fi
 
-# --- Modo X11: ventana en el host
+# --- X11 mode: window on host
 run_x11() {
   if [[ -z "$DISPLAY" ]]; then
-    echo "Error: DISPLAY no está definido. Ejecutá este script en una sesión con escritorio (X11 o Wayland+Xwayland)."
+    echo "Error: DISPLAY is not set. Run this script in a session with a display (X11 or Wayland+Xwayland)."
     exit 1
   fi
-  echo ">>> Modo X11: la ventana de OMNeT++ se abrirá en tu pantalla."
-  echo ">>> Si falla, probá en el host: xhost +local:docker"
+  echo ">>> X11 mode: OMNeT++ window will open on your screen."
+  echo ">>> If it fails, try on the host: xhost +local:docker"
   echo ""
   if [[ -n "$APPIMAGE_ABS" ]]; then
     docker run --rm -it \
@@ -103,27 +101,27 @@ run_x11() {
       bash -c '
         apt-get update -qq && apt-get install -y -qq libfuse2 libgtk-3-0 libxtst6 libxi6 libxrender1 libxfixes3 > /dev/null
         chmod +x "/mnt/'"$(basename "$APPIMAGE_ABS")"'"
-        echo "Abriendo OMNeT++..."
+        echo "Opening OMNeT++..."
         exec "/mnt/'"$(basename "$APPIMAGE_ABS")"'"
       '
   else
-    echo "Modo X11 con .deb: instalar el .deb en el contenedor y ejecutar omnetpp (requiere más dependencias)."
-    echo "Recomendación: usá --browser con el .deb para probar la IDE."
+    echo "X11 mode with .deb: install .deb in container and run omnetpp (requires more dependencies)."
+    echo "Recommendation: use --browser with .deb to test the IDE."
     exit 1
   fi
 }
 
-# --- Modo browser (noVNC): escritorio en http://localhost:6901
-# En accetto/ubuntu-vnc-xfce-g3 el usuario headless tiene $HOME=/home/headless; el Desktop puede estar ahí
+# --- Browser mode (noVNC): desktop at http://localhost:6901
+# In accetto/ubuntu-vnc-xfce-g3 user headless has $HOME=/home/headless; Desktop may be there
 NOVNC_IMAGE="${NOVNC_IMAGE:-accetto/ubuntu-vnc-xfce-g3}"
 NOVNC_PORT="${NOVNC_PORT:-6901}"
 CONTAINER_NAME="omnet-gui-test-$$"
 DESKTOP_DIR="/home/headless/Desktop"
 
 run_browser() {
-  echo ">>> Arrancando escritorio con noVNC (imagen: $NOVNC_IMAGE)"
-  echo ">>> Abrí en el navegador: http://localhost:$NOVNC_PORT"
-  echo ">>> Contraseña por defecto: headless (usuario headless)."
+  echo ">>> Starting desktop with noVNC (image: $NOVNC_IMAGE)"
+  echo ">>> Open in browser: http://localhost:$NOVNC_PORT"
+  echo ">>> Default password: headless (user headless)."
   echo ""
   if [[ -n "$APPIMAGE_ABS" ]]; then
     docker run -d --name "$CONTAINER_NAME" \
@@ -141,7 +139,7 @@ run_browser() {
       chmod +x $DESKTOP_DIR/run-omnetpp.sh
       chown headless:headless $DESKTOP_DIR/run-omnetpp.sh 2>/dev/null || true
     "
-    echo ">>> En el escritorio: doble clic en 'run-omnetpp.sh' o en una terminal: APPIMAGE_EXTRACT_AND_RUN=1 /opt/mnt/$(basename "$APPIMAGE_ABS")"
+    echo ">>> On desktop: double-click 'run-omnetpp.sh' or in a terminal: APPIMAGE_EXTRACT_AND_RUN=1 /opt/mnt/$(basename "$APPIMAGE_ABS")"
   else
     docker run -d --name "$CONTAINER_NAME" \
       -p "${NOVNC_PORT}:6901" \
@@ -159,20 +157,20 @@ run_browser() {
       chmod +x $DESKTOP_DIR/run-omnetpp.sh
       chown headless:headless $DESKTOP_DIR/run-omnetpp.sh 2>/dev/null || true
     " 2>/dev/null
-    echo ">>> En el escritorio: doble clic en 'run-omnetpp.sh' o en una terminal: omnetpp"
+    echo ">>> On desktop: double-click 'run-omnetpp.sh' or in a terminal: omnetpp"
   fi
   echo ""
-  echo ">>> Contenedor: $CONTAINER_NAME. Para parar: docker stop $CONTAINER_NAME"
+  echo ">>> Container: $CONTAINER_NAME. To stop: docker stop $CONTAINER_NAME"
   echo ""
-  echo "Abrí http://localhost:$NOVNC_PORT y comprobá que OMNeT++ arranca."
+  echo "Open http://localhost:$NOVNC_PORT and verify OMNeT++ starts."
 }
 
-# --- Modo browser-check: mismo que browser pero hace chequeo automático con wmctrl
+# --- Browser-check mode: same as browser but runs automatic check with wmctrl
 run_browser_check() {
   run_browser
-  echo ">>> Esperando 5 s a que el escritorio esté listo..."
+  echo ">>> Waiting 5 s for desktop to be ready..."
   sleep 5
-  echo ">>> Instalando wmctrl y lanzando OMNeT++ en el contenedor..."
+  echo ">>> Installing wmctrl and launching OMNeT++ in container..."
   if [[ -n "$APPIMAGE_ABS" ]]; then
     APPIMAGE_BASENAME="$(basename "$APPIMAGE_ABS")"
     docker exec "$CONTAINER_NAME" bash -c "
@@ -185,18 +183,18 @@ run_browser_check() {
       sudo -u headless env DISPLAY=:1 omnetpp &
     " 2>/dev/null || true
   fi
-  echo ">>> Esperando 30 s a que la ventana de OMNeT++ aparezca..."
+  echo ">>> Waiting 30 s for OMNeT++ window to appear..."
   sleep 30
   FOUND=$(docker exec "$CONTAINER_NAME" bash -c "DISPLAY=:1 wmctrl -l 2>/dev/null | grep -i omnet || true") || true
   docker stop "$CONTAINER_NAME" > /dev/null 2>&1 || true
   docker rm "$CONTAINER_NAME" > /dev/null 2>&1 || true
   if [[ -n "$FOUND" ]]; then
-    echo ">>> OK: Se detectó ventana de OMNeT++ en el escritorio."
+    echo ">>> OK: OMNeT++ window detected on desktop."
     echo "$FOUND"
     exit 0
   else
-    echo ">>> FAIL: No se detectó ninguna ventana con 'OMNeT' en el título (wmctrl -l)."
-    echo ">>> Podés usar --browser (sin -check) y abrir http://localhost:$NOVNC_PORT para comprobar a mano."
+    echo ">>> FAIL: No window with 'OMNeT' in title found (wmctrl -l)."
+    echo ">>> Use --browser (without -check) and open http://localhost:$NOVNC_PORT to verify manually."
     exit 1
   fi
 }
@@ -205,5 +203,5 @@ case "$MODE" in
   --x11)    run_x11 ;;
   --browser) run_browser ;;
   --browser-check) run_browser_check ;;
-  *) echo "Modo no implementado: $MODE"; exit 1 ;;
+  *) echo "Mode not implemented: $MODE"; exit 1 ;;
 esac

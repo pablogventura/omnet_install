@@ -1,5 +1,5 @@
 #!/bin/bash
-# Instalación directa de OMNeT++. Versión configurable con OMNET_VERSION (por defecto 6.0.1).
+# Direct installation of OMNeT++. Version configurable via OMNET_VERSION (default 6.0.1).
 
 OMNET_VERSION="${OMNET_VERSION:-6.0.1}"
 OMNET_TARBALL="omnetpp-${OMNET_VERSION}-linux-x86_64.tgz"
@@ -48,7 +48,7 @@ cd "$OMNET_DIR"
 source setenv
 
 # Disable Open Scene Graph (OSG)
-# configure.user puede no existir (el tarball trae configure.user.dist)
+# configure.user may not exist (tarball ships configure.user.dist)
 if [ -f configure.user.dist ] && [ ! -f configure.user ]; then
   cp configure.user.dist configure.user
 fi
@@ -65,7 +65,7 @@ make -j$(nproc)
 # Install OMNeT++ shortcuts
 make install-shortcuts
 
-# Allow PTRACE access for debugging (solo si existe el archivo en esta distro)
+# Allow PTRACE access for debugging (only if the file exists on this distro)
 if [ -f /etc/sysctl.d/10-ptrace.conf ]; then
   sudo sed -i 's/kernel.yama.ptrace_scope = 1/kernel.yama.ptrace_scope = 0/' /etc/sysctl.d/10-ptrace.conf
 fi

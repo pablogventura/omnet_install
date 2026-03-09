@@ -1,12 +1,12 @@
 #!/bin/bash
 #
-# Construye el .deb de OMNeT++ dentro de un contenedor Ubuntu 22.04.
-# Así el paquete queda enlazado contra la glibc de 22.04 y funciona en 22.04 y 24.04.
+# Build the OMNeT++ .deb package inside an Ubuntu 22.04 container.
+# This links the package against 22.04 glibc so it runs on both 22.04 and 24.04.
 #
-# Uso: ./build_omnet_deb_docker.sh [directorio_salida]
-#   Por defecto el .deb se deja en el directorio actual.
+# Usage: ./build_omnet_deb_docker.sh [output_directory]
+#   Default: .deb is written to the current directory.
 #
-# Requiere: Docker. La primera vez tarda ~15–30 min (descarga imagen, deps y compila).
+# Requires: Docker. First run takes ~15–30 min (image download, deps and build).
 #
 
 set -e
@@ -17,8 +17,8 @@ OUTPUT_ABS="$(cd "$(dirname "$OUTPUT_DIR")" && pwd)/$(basename "$OUTPUT_DIR")"
 OMNET_VERSION="${OMNET_VERSION:-6.0.1}"
 DEB_NAME="omnetpp_${OMNET_VERSION}-1_amd64.deb"
 
-echo ">>> Construyendo .deb de OMNeT++ en Docker (Ubuntu 22.04)"
-echo ">>> Salida: $OUTPUT_ABS"
+echo ">>> Building OMNeT++ .deb in Docker (Ubuntu 22.04)"
+echo ">>> Output: $OUTPUT_ABS"
 echo ""
 
 docker run --rm \
@@ -29,7 +29,7 @@ docker run --rm \
   ubuntu:22.04 \
   bash -c '
     set -e
-    echo ">>> Instalando dependencias de build..."
+    echo ">>> Installing build dependencies..."
     apt-get update -qq
     apt-get install -y -qq \
       build-essential clang lld gdb bison flex perl \
@@ -41,13 +41,13 @@ docker run --rm \
       wget dpkg-dev > /dev/null
     apt-get install -y -qq libwebkit2gtk-4.0-37 2>/dev/null || true
 
-    echo ">>> Ejecutando build_omnet_deb.sh en /output..."
+    echo ">>> Running build_omnet_deb.sh in /output..."
     /mnt/build_omnet_deb.sh /output
     echo ""
-    echo ">>> .deb generado en /output (montado en el host)."
+    echo ">>> .deb generated in /output (mounted on host)."
   '
 
 echo ""
-echo ">>> Listo. Paquete: $OUTPUT_ABS/$DEB_NAME"
-echo ">>> Probar en 22.04 y 24.04: SKIP_INSTALL=1 ./test_all_docker.sh"
+echo ">>> Done. Package: $OUTPUT_ABS/$DEB_NAME"
+echo ">>> Test on 22.04 and 24.04: SKIP_INSTALL=1 ./test_all_docker.sh"
 echo ""

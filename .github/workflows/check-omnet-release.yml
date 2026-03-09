@@ -1,0 +1,83 @@
+# When OMNeT++ publishes a new release, create an issue in this repo to remind
+# maintainers to verify that the install/packaging scripts still work.
+#
+# Runs daily (and can be triggered manually via workflow_dispatch).
+# Avoids duplicate issues by checking for an existing issue whose title contains the version.
+
+name: Check OMNeT++ release
+
+on:
+  schedule:
+    # Run at 09:00 UTC every day
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Get latest OMNeT++ release
+        id: release
+        run: |
+          resp=$(curl -sS -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/omnetpp/omnetpp/releases/latest")
+          tag=$(echo "$resp" | jq -r '.tag_name')
+          version=$(echo "$tag" | sed -n 's/^omnetpp-//p')
+          if [[ -z "$version" ]]; then
+            version="$tag"
+          fi
+          echo "tag_name=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Latest OMNeT++ release: $tag (version $version)"
+
+      - name: Find existing issue for this version
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${{ steps.release.outputs.version }}"
+          # Search for any issue (open or closed) whose title contains this version
+          found=$(gh issue list --repo "${{ github.repository }}" \
+            --state all \
+            --limit 200 \
+            --json title,number \
+            --jq ".[] | select(.title | test(\"${version}\")) | .number" | head -1)
+          if [[ -n "$found" ]]; then
+            echo "existing_issue=$found" >> "$GITHUB_OUTPUT"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create issue for new OMNeT++ version
+        if: steps.existing.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${{ steps.release.outputs.version }}"
+          tag="${{ steps.release.outputs.tag_name }}"
+          title="[OMNeT++] Verify scripts with OMNeT++ ${version}"
+          body="A new OMNeT++ release was published: **${tag}**.
+
+          Please verify that the install and packaging scripts in this repo still work with this version:
+
+          - [ ] \`install_omnet.sh\` (direct install)
+          - [ ] \`build_omnet_deb.sh\` / \`build_omnet_deb_docker.sh\`
+          - [ ] \`build_omnet_appimage.sh\` / \`build_omnet_appimage_docker.sh\`
+          - [ ] Docker tests (\`test_all_docker.sh\`, \`test_gui_docker.sh\`) on Ubuntu 22.04 and 24.04
+
+          To test with this version, set \`OMNET_VERSION=${version}\` when running the scripts (e.g. \`OMNET_VERSION=${version} ./build_omnet_deb.sh\`).
+
+          ---
+          *This issue was created automatically by the [Check OMNeT++ release](https://github.com/${{ github.repository }}/actions/workflows/check-omnet-release.yml) workflow.*
+          "
+          gh issue create --repo "${{ github.repository }}" \
+            --title "$title" \
+            --body "$body"
+          echo "Created issue: $title"
+      - name: Skip (issue already exists)
+        if: steps.existing.outputs.skip == 'true'
+        run: echo "An issue for version ${{ steps.release.outputs.version }} already exists; skipping."

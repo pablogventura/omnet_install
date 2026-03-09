@@ -1,13 +1,12 @@
 #!/bin/bash
 #
-# Construye el AppImage de OMNeT++ dentro de un contenedor Ubuntu 22.04.
-# Así el binario queda enlazado contra la glibc de 22.04 y el AppImage
-# funciona en Ubuntu 22.04 (y en 24.04).
+# Build the OMNeT++ AppImage inside an Ubuntu 22.04 container.
+# This links the binary against 22.04 glibc so the AppImage runs on Ubuntu 22.04 (and 24.04).
 #
-# Uso: ./build_omnet_appimage_docker.sh [directorio_salida]
-#   Por defecto el AppImage se deja en el directorio actual.
+# Usage: ./build_omnet_appimage_docker.sh [output_directory]
+#   Default: AppImage is written to the current directory.
 #
-# Requiere: Docker. La primera vez tarda ~20–40 min (imagen, deps, compilación y linuxdeploy).
+# Requires: Docker. First run takes ~20–40 min (image, deps, build and linuxdeploy).
 #
 
 set -e
@@ -18,8 +17,8 @@ OUTPUT_ABS="$(cd "$(dirname "$OUTPUT_DIR")" && pwd)/$(basename "$OUTPUT_DIR")"
 OMNET_VERSION="${OMNET_VERSION:-6.0.1}"
 APPIMAGE_NAME="OMNeT++-${OMNET_VERSION}-x86_64.AppImage"
 
-echo ">>> Construyendo AppImage de OMNeT++ en Docker (Ubuntu 22.04)"
-echo ">>> Salida: $OUTPUT_ABS"
+echo ">>> Building OMNeT++ AppImage in Docker (Ubuntu 22.04)"
+echo ">>> Output: $OUTPUT_ABS"
 echo ""
 
 docker run --rm \
@@ -31,7 +30,7 @@ docker run --rm \
   ubuntu:22.04 \
   bash -c '
     set -e
-    echo ">>> Instalando dependencias de build..."
+    echo ">>> Installing build dependencies..."
     apt-get update -qq
     apt-get install -y -qq \
       build-essential clang lld gdb bison flex perl \
@@ -43,13 +42,13 @@ docker run --rm \
       wget libfuse2 unzip > /dev/null
     apt-get install -y -qq libwebkit2gtk-4.0-37 2>/dev/null || true
 
-    echo ">>> Ejecutando build_omnet_appimage.sh (salida en /output)..."
+    echo ">>> Running build_omnet_appimage.sh (output in /output)..."
     /mnt/build_omnet_appimage.sh /output
     echo ""
-    echo ">>> AppImage generado en /output (montado en el host)."
+    echo ">>> AppImage generated in /output (mounted on host)."
   '
 
 echo ""
-echo ">>> Listo. AppImage: $OUTPUT_ABS/$APPIMAGE_NAME"
-echo ">>> Probar en 22.04 y 24.04: SKIP_INSTALL=1 ./test_all_docker.sh"
+echo ">>> Done. AppImage: $OUTPUT_ABS/$APPIMAGE_NAME"
+echo ">>> Test on 22.04 and 24.04: SKIP_INSTALL=1 ./test_all_docker.sh"
 echo ""

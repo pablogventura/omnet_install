@@ -66,16 +66,16 @@ chmod +x build_omnet_deb.sh
 ./build_omnet_deb.sh -d ./dist
 ```
 
-**Construir el .deb en Docker (recomendado para probar en 22.04 y 24.04):**  
-Si construís el .deb en un host con glibc más nuevo (p. ej. Ubuntu 24.04), el paquete puede no ejecutarse en Ubuntu 22.04. Para un .deb que funcione en **ambas** versiones, construilo dentro de un contenedor Ubuntu 22.04:
+**Build the .deb in Docker (recommended for testing on 22.04 and 24.04):**  
+If you build the .deb on a host with a newer glibc (e.g. Ubuntu 24.04), the package may not run on Ubuntu 22.04. To get a .deb that works on **both** versions, build it inside an Ubuntu 22.04 container:
 
 ```bash
 ./build_omnet_deb_docker.sh
-# O con directorio de salida:
+# Or with output directory:
 ./build_omnet_deb_docker.sh ./dist
 ```
 
-Requiere Docker. La primera ejecución tarda ~15–30 min (descarga de imagen, dependencias y compilación).
+Requires Docker. First run takes ~15–30 min (image download, dependencies and compilation).
 
 ### Installing the generated package
 
@@ -121,16 +121,16 @@ chmod +x build_omnet_appimage.sh
 ./build_omnet_appimage.sh -d ./dist
 ```
 
-**Construir el AppImage en Docker (compatible con Ubuntu 22.04 y 24.04):**  
-Para que el AppImage funcione en **Ubuntu 22.04** (y por tanto también en 24.04), conviene construirlo dentro de un contenedor Ubuntu 22.04; si se construye en un host con glibc más nuevo, puede fallar en 22.04.
+**Build the AppImage in Docker (compatible with Ubuntu 22.04 and 24.04):**  
+For the AppImage to work on **Ubuntu 22.04** (and thus on 24.04 too), build it inside an Ubuntu 22.04 container; if built on a host with a newer glibc, it may fail on 22.04.
 
 ```bash
 ./build_omnet_appimage_docker.sh
-# O con directorio de salida:
+# Or with output directory:
 ./build_omnet_appimage_docker.sh ./dist
 ```
 
-Requiere Docker. La primera ejecución tarda ~20–40 min.
+Requires Docker. First run takes ~20–40 min.
 
 ### Running the AppImage
 
@@ -167,7 +167,7 @@ All three delivery methods can be tested inside **Ubuntu 22.04 or 24.04** contai
 
 | Test | Script | What it does |
 |------|--------|---------------|
-| **Instalador** | `test_install_docker.sh [22.04\|24.04]` | Runs `install_omnet.sh` in the container (download + build, 15–30 min), then checks `opp_run --version` and `bin/omnetpp`. |
+| **Installer** | `test_install_docker.sh [22.04\|24.04]` | Runs `install_omnet.sh` in the container (download + build, 15–30 min), then checks `opp_run --version` and `bin/omnetpp`. |
 | **.deb** | `test_deb_docker.sh [path/to.deb] [22.04\|24.04]` | Installs the .deb in the container, runs `apt-get install -f`, then checks `opp_run` and `omnetpp` in PATH. Build the .deb first with `./build_omnet_deb.sh`. |
 | **AppImage** | `test_appimage_docker.sh [path/to.AppImage] [22.04\|24.04]` | Runs the AppImage in the container, checks SWT libs and `opp_run --version`. |
 
@@ -183,33 +183,33 @@ UBUNTU_VERSIONS="24.04" ./test_all_docker.sh
 ./test_all_docker.sh ./dist
 ```
 
-### Tests con interfaz gráfica (ver que la IDE carga)
+### GUI tests (verify the IDE launches)
 
-Para comprobar que la IDE de OMNeT++ abre bien (no solo `opp_run`), podés usar **`test_gui_docker.sh`** de dos maneras:
+To verify that the OMNeT++ IDE opens correctly (not just `opp_run`), use **`test_gui_docker.sh`** in two ways:
 
-| Modo | Descripción |
+| Mode | Description |
 |------|-------------|
-| **`--x11`** | La ventana de OMNeT++ se abre en **tu pantalla**. Requiere X11 (o Wayland con Xwayland) y una vez en el host: `xhost +local:docker`. |
-| **`--browser`** | Arranca un **escritorio en un contenedor** y lo sirve por **noVNC**. Abrís **http://localhost:6901** en el navegador y ves el escritorio; ahí abrís una terminal o el lanzador y ejecutás OMNeT++ para ver si la IDE carga. |
-| **`--browser-check`** | Igual que `--browser` pero el script hace un **chequeo automático**: lanza la IDE en el contenedor, espera y comprueba con `wmctrl` si apareció una ventana con "OMNeT" en el título. Sirve para CI o para no tener que mirar el navegador. |
+| **`--x11`** | The OMNeT++ window opens on **your screen**. Requires X11 (or Wayland with Xwayland) and on the host run once: `xhost +local:docker`. |
+| **`--browser`** | Starts a **desktop in a container** and serves it via **noVNC**. Open **http://localhost:6901** in your browser to see the desktop; open a terminal or launcher and run OMNeT++ to check that the IDE loads. |
+| **`--browser-check`** | Same as `--browser` but the script runs an **automatic check**: it launches the IDE in the container, waits and uses `wmctrl` to verify a window with "OMNeT" in the title appeared. Useful for CI or to avoid manual browser checks. |
 
-Ejemplos:
+Examples:
 
 ```bash
-# Escritorio en el navegador (abrís http://localhost:6901 y ejecutás OMNeT++ a mano)
+# Desktop in browser (open http://localhost:6901 and run OMNeT++ manually)
 ./test_gui_docker.sh --browser ./OMNeT++-6.0.1-x86_64.AppImage
 
-# Chequeo automático: el script dice OK o FAIL según si detecta la ventana
+# Automatic check: script reports OK or FAIL based on whether it detects the window
 ./test_gui_docker.sh --browser-check
 
-# Con el .deb (instala el .deb en el contenedor y dejá el escritorio listo para ejecutar omnetpp)
+# With .deb (installs .deb in container and leaves desktop ready to run omnetpp)
 ./test_gui_docker.sh --browser .deb ./omnetpp_6.0.1-1_amd64.deb
 
-# Ventana en tu pantalla (X11)
+# Window on your screen (X11)
 ./test_gui_docker.sh --x11 ./OMNeT++-6.0.1-x86_64.AppImage
 ```
 
-Para `--browser` y `--browser-check` se usa la imagen **accetto/ubuntu-vnc-xfce-g3** (Ubuntu + Xfce + noVNC). Usuario/contraseña por defecto: **headless** / **headless**.
+For `--browser` and `--browser-check` the image **accetto/ubuntu-vnc-xfce-g3** (Ubuntu + Xfce + noVNC) is used. Default user/password: **headless** / **headless**.
 
 ---
 
@@ -230,6 +230,8 @@ The scripts `build_omnet_deb.sh` and `build_omnet_appimage.sh` can install build
 
 ```
 .
+├── .github/workflows/
+│   └── check-omnet-release.yml   # Daily: create an issue when omnetpp/omnetpp has a new release (verify scripts)
 ├── install_omnet.sh         # Direct installation
 ├── build_omnet_deb.sh       # Build .deb package
 ├── build_omnet_deb_docker.sh    # Build .deb inside Ubuntu 22.04 Docker (for 22.04 + 24.04)
@@ -239,33 +241,34 @@ The scripts `build_omnet_deb.sh` and `build_omnet_appimage.sh` can install build
 ├── test_deb_docker.sh       # Test .deb install in Ubuntu 22.04/24.04 (Docker)
 ├── test_appimage_docker.sh  # Test AppImage in Ubuntu 22.04/24.04 (Docker)
 ├── test_all_docker.sh       # Run all Docker tests
-├── test_gui_docker.sh       # Test con GUI: --x11 (ventana en tu pantalla) o --browser/--browser-check (noVNC)
+├── test_gui_docker.sh       # GUI test: --x11 (window on your screen) or --browser/--browser-check (noVNC)
 ├── .gitignore
 └── README.md
 ```
 
 ---
 
-## Licencia y redistribución de binarios
+## License and binary redistribution
 
-**OMNeT++** está bajo la [Academic Public License (APL)](https://omnetpp.org/intro/license): uso gratuito para fines **no comerciales** (académicos, enseñanza, investigación, uso personal). El uso comercial requiere licencia de [OMNEST](https://www.omnest.com/).
+**OMNeT++** is under the [Academic Public License (APL)](https://omnetpp.org/intro/license): free for **non-commercial** use (academic, teaching, research, personal use). Commercial use requires a license from [OMNEST](https://www.omnest.com/).
 
-Podés **compartir** los `.deb` y el AppImage generados por este repo (por ejemplo en GitHub Releases) sin violar la licencia, siempre que:
+You may **share** the `.deb` and AppImage produced by this repo (e.g. on GitHub Releases) without violating the license, provided that:
 
-1. **Solo sea uso no comercial** (quien los descargue también debe usarlos bajo APL).
-2. **Acompañes los binarios** con esta información:
-   - Que OMNeT++ está bajo la **Academic Public License**.
-   - **Código fuente** de la versión usada: en el proyecto oficial, por ejemplo para 6.0.1:  
+1. **Use is non-commercial only** (recipients must also use them under the APL).
+2. **Accompany the binaries** with this information:
+   - That OMNeT++ is under the **Academic Public License**.
+   - **Source code** for the version used: from the official project, e.g. for 6.0.1:  
      [https://github.com/omnetpp/omnetpp/releases/tag/omnetpp-6.0.1](https://github.com/omnetpp/omnetpp/releases/tag/omnetpp-6.0.1)  
-     (reemplazá `6.0.1` por la versión que hayas usado si es otra).
-   - Texto de la licencia: [https://omnetpp.org/intro/license](https://omnetpp.org/intro/license).
+     (replace `6.0.1` with the version you used if different).
+   - License text: [https://omnetpp.org/intro/license](https://omnetpp.org/intro/license).
 
-En este repositorio esa información figura en este README; si publicás los binarios en otro sitio (p. ej. solo en Releases), incluir un aviso equivalente en la descripción del release o en un archivo junto a los binarios.
+In this repository that information is in this README; if you publish the binaries elsewhere (e.g. only in Releases), include an equivalent notice in the release description or in a file next to the binaries.
 
 ---
 
 ## Notes
 
-- **Versión por defecto**: 6.0.1. Es configurable en **todos** los scripts (build, install y tests) con la variable de entorno **`OMNET_VERSION`**, por ejemplo: `OMNET_VERSION=6.0.2 ./build_omnet_deb.sh`.
+- **Default version**: 6.0.1. Configurable in **all** scripts (build, install and tests) via the **`OMNET_VERSION`** environment variable, e.g. `OMNET_VERSION=6.0.2 ./build_omnet_deb.sh`.
 - **Open Scene Graph (OSG)**: Disabled in the build (`WITH_OSG=no`) to avoid extra dependencies.
 - **Python**: The scripts create a `venv` inside the OMNeT++ tree with numpy, pandas, matplotlib, scipy, seaborn and posix_ipc, required by the framework.
+- **New OMNeT++ releases**: The workflow [Check OMNeT++ release](.github/workflows/check-omnet-release.yml) runs daily and opens an issue when [omnetpp/omnetpp](https://github.com/omnetpp/omnetpp) publishes a new release, so you can verify the scripts with that version. You can also trigger it manually from the Actions tab.
