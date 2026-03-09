@@ -209,9 +209,9 @@ set -e
 APPDIR="$(dirname "$(readlink -f "$0")")"
 # Bundled libraries (Qt5, etc.) in the AppImage
 export LD_LIBRARY_PATH="${APPDIR}/usr/lib:${APPDIR}/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
-READONLY_ROOT="${APPDIR}/opt/omnetpp-6.3.0"
+READONLY_ROOT="${APPDIR}/opt/omnetpp-__OMNET_VERSION__"
 WRITABLE_BASE="${XDG_DATA_HOME:-$HOME/.local/share}"
-WRITABLE_OMNET="${WRITABLE_BASE}/omnetpp-6.3.0"
+WRITABLE_OMNET="${WRITABLE_BASE}/omnetpp-__OMNET_VERSION__"
 
 # opp_run does not write to ide/; can run from read-only mount
 if [[ "${1:-}" == "opp_run" ]] || [[ "${1:-}" == "run" ]]; then
@@ -255,7 +255,7 @@ export OMNETPP_ROOT="$WRITABLE_OMNET"
 export PATH="${OMNETPP_ROOT}/bin:${PATH}"
 exec "${OMNETPP_ROOT}/bin/omnetpp" "$@"
 APPRUN
-sed -i "s|omnetpp-6\.3\.0|omnetpp-${OMNET_VERSION}|g" "$APPDIR/AppRun"
+sed -i "s|__OMNET_VERSION__|${OMNET_VERSION}|g" "$APPDIR/AppRun"
 chmod +x "$APPDIR/AppRun"
 
 OMNET_ICON_SRC=""
