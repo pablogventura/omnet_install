@@ -1,4 +1,10 @@
 #!/bin/bash
+# Instalación directa de OMNeT++. Versión configurable con OMNET_VERSION (por defecto 6.0.1).
+
+OMNET_VERSION="${OMNET_VERSION:-6.0.1}"
+OMNET_TARBALL="omnetpp-${OMNET_VERSION}-linux-x86_64.tgz"
+OMNET_URL="https://github.com/omnetpp/omnetpp/releases/download/omnetpp-${OMNET_VERSION}/${OMNET_TARBALL}"
+OMNET_DIR="omnetpp-${OMNET_VERSION}"
 
 # Update the system
 sudo apt-get update
@@ -8,7 +14,9 @@ sudo apt-get -y install build-essential clang lld gdb bison flex perl \
 python3 python3-pip qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools \
 libqt5opengl5-dev libxml2-dev zlib1g-dev doxygen graphviz \
 xdg-utils
-sudo apt-get -y install libwebkit2gtk-4.0-37
+sudo apt-get -y install libwebkit2gtk-4.1-0 2>/dev/null \
+  || sudo apt-get -y install libwebkit2gtk-4.0-37 2>/dev/null \
+  || echo "Warning: libwebkit2gtk not installed (optional for the IDE)"
 sudo apt-get -y install python3-numpy python3-scipy python3-matplotlib python3-pandas python3-seaborn
 
 
@@ -18,23 +26,23 @@ sudo apt-get -y install mpi-default-dev
 # Install libstdc++-12-dev library
 sudo apt-get -y install libstdc++-12-dev
 
-# Download OMNeT++ 6.0.1
-wget -c https://github.com/omnetpp/omnetpp/releases/download/omnetpp-6.0.1/omnetpp-6.0.1-linux-x86_64.tgz
+# Download OMNeT++
+wget -c "$OMNET_URL" -O "$OMNET_TARBALL"
 
 # Extract the downloaded file
-tar xzf omnetpp-6.0.1-linux-x86_64.tgz
+tar xzf "$OMNET_TARBALL"
 
-python3 -m venv omnetpp-6.0.1/venv
+python3 -m venv "$OMNET_DIR/venv"
 
 # Activate the environment
-source omnetpp-6.0.1/venv/bin/activate
+source "$OMNET_DIR/venv/bin/activate"
 
 # Install Python dependencies
 pip install --upgrade pip
 pip install numpy pandas matplotlib scipy seaborn posix_ipc
 
 # Change to OMNeT++ directory
-cd omnetpp-6.0.1
+cd "$OMNET_DIR"
 
 # Configure OMNeT++ environment
 source setenv

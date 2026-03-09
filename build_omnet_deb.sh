@@ -182,6 +182,7 @@ cat > "$STAGING/usr/bin/omnetpp" << WRAPPER
 #!/bin/bash
 export OMNETPP_ROOT="${INSTALL_PREFIX}"
 export PATH="\${OMNETPP_ROOT}/bin:\$PATH"
+export LD_LIBRARY_PATH="\${OMNETPP_ROOT}/lib:\${LD_LIBRARY_PATH:-}"
 exec "\${OMNETPP_ROOT}/bin/omnetpp" "\$@"
 WRAPPER
 chmod 755 "$STAGING/usr/bin/omnetpp"
@@ -191,6 +192,7 @@ cat > "$STAGING/usr/bin/opp_run" << WRAPPER
 #!/bin/bash
 export OMNETPP_ROOT="${INSTALL_PREFIX}"
 export PATH="\${OMNETPP_ROOT}/bin:\$PATH"
+export LD_LIBRARY_PATH="\${OMNETPP_ROOT}/lib:\${LD_LIBRARY_PATH:-}"
 exec "\${OMNETPP_ROOT}/bin/opp_run" "\$@"
 WRAPPER
 chmod 755 "$STAGING/usr/bin/opp_run"
@@ -231,7 +233,7 @@ Section: science
 Priority: optional
 Architecture: ${PKG_ARCH}
 Installed-Size: ${INSTALLED_SIZE}
-Depends: libc6 (>= 2.34), libstdc++6 (>= 10), libgcc-s1 (>= 4.2), libqt5core5a, libqt5gui5, libqt5widgets5, libqt5opengl5, libxml2 (>= 2.9.0), zlib1g (>= 1:1.2.0), python3 (>= 3.8), python3-numpy, libopenmpi3
+Depends: libc6 (>= 2.34), libstdc++6 (>= 10), libgcc-s1 (>= 4.2), libqt5core5a, libqt5gui5, libqt5widgets5, libqt5opengl5, libqt5printsupport5, libxml2 (>= 2.9.0), zlib1g (>= 1:1.2.0), python3 (>= 3.8), python3-numpy, libopenmpi3
 Maintainer: OMNeT++ Package Builder <omnet@local>
 Description: OMNeT++ Discrete Event Simulator
  OMNeT++ ${OMNET_VERSION} - Network simulation framework.

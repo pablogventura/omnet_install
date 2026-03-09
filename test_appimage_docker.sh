@@ -1,7 +1,8 @@
 #!/bin/bash
 #
-# Test the OMNeT++ AppImage inside an Ubuntu 22.04 Docker container.
-# Usage: ./test_appimage_docker.sh [path/to/OMNeT++-6.0.1-x86_64.AppImage]
+# Test the OMNeT++ AppImage inside an Ubuntu Docker container.
+# Usage: ./test_appimage_docker.sh [path/to/OMNeT++-6.0.1-x86_64.AppImage] [22.04|24.04]
+#   Or: UBUNTU_VERSION=24.04 ./test_appimage_docker.sh [path/to.AppImage]
 #
 # Requires: Docker, and the AppImage file.
 # The script runs the AppImage with DEBUG_OMNET_APPIMAGE=1 and checks that
@@ -11,7 +12,11 @@
 
 set -e
 
-APPIMAGE="${1:-./OMNeT++-6.0.1-x86_64.AppImage}"
+OMNET_VERSION="${OMNET_VERSION:-6.0.1}"
+APPIMAGE="${1:-./OMNeT++-${OMNET_VERSION}-x86_64.AppImage}"
+UBUNTU_VERSION="${UBUNTU_VERSION:-${2:-22.04}}"
+case "$UBUNTU_VERSION" in 22.04|24.04) ;; *) echo "Error: UBUNTU_VERSION must be 22.04 or 24.04"; exit 1;; esac
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 APPIMAGE_ABS="$(cd "$(dirname "$APPIMAGE")" && pwd)/$(basename "$APPIMAGE")"
 APPIMAGE_NAME="$(basename "$APPIMAGE_ABS")"
@@ -19,18 +24,18 @@ APPIMAGE_DIR="$(dirname "$APPIMAGE_ABS")"
 
 if [[ ! -f "$APPIMAGE_ABS" ]]; then
   echo "Error: AppImage not found: $APPIMAGE_ABS"
-  echo "Usage: $0 [path/to/OMNeT++-6.0.1-x86_64.AppImage]"
+  echo "Usage: $0 [path/to/OMNeT++-${OMNET_VERSION}-x86_64.AppImage] [22.04|24.04]"
   exit 1
 fi
 
-echo ">>> Testing AppImage in Ubuntu 22.04 (Docker): $APPIMAGE_ABS"
+echo ">>> Testing AppImage in Ubuntu $UBUNTU_VERSION (Docker): $APPIMAGE_ABS"
 echo ""
 
 docker run --rm \
   -v "$APPIMAGE_DIR:/mnt:ro" \
   -e DEBUG_OMNET_APPIMAGE=1 \
   -e APPIMAGE_EXTRACT_AND_RUN=1 \
-  ubuntu:22.04 \
+  "ubuntu:${UBUNTU_VERSION}" \
   bash -c '
     set -e
     export DEBIAN_FRONTEND=noninteractive

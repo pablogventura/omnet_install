@@ -185,7 +185,7 @@ done < <(grep -rZl --fixed-strings "/tmp/tmp." "$ROOT" 2>/dev/null)
 [[ -d "$ROOT/bin" ]] && chmod +x "$ROOT/bin"/* 2>/dev/null || true
 
 # Eclipse IDE needs SWT native libs in java.library.path (Ubuntu 22.04 etc.)
-SWT_PLUGIN=$(find "$ROOT/ide/plugins" -maxdepth 1 -type d -name 'org.eclipse.swt.gtk.linux.x86_64*' 2>/dev/null | head -1)
+SWT_PLUGIN=$(find "$ROOT/ide/plugins" -maxdepth 1 -type d \( -name 'org.eclipse.swt.gtk.linux.x86_64*' -o -name '*swt*gtk*linux*x86_64*' \) 2>/dev/null | head -1)
 if [[ -n "$SWT_PLUGIN" ]] && [[ -f "$ROOT/ide/eclipse.ini" ]]; then
   SWT_NAME="$(basename "$SWT_PLUGIN")"
   echo ">>> Adding SWT plugin to java.library.path (eclipse.ini): plugins/$SWT_NAME"
@@ -249,7 +249,7 @@ if [[ "${DEBUG_OMNET_APPIMAGE:-0}" == "1" ]]; then
   echo "DEBUG_OMNET_APPIMAGE: WRITABLE_OMNET=$WRITABLE_OMNET"
   echo "DEBUG_OMNET_APPIMAGE: eclipse.ini exists=$([[ -f "$WRITABLE_OMNET/ide/eclipse.ini" ]] && echo yes || echo no)"
   echo "DEBUG_OMNET_APPIMAGE: SWT plugin=$SWT_PLUGIN"
-  echo "DEBUG_OMNET_APPIMAGE: usr/lib SWT libs: $(find "$APPDIR/usr/lib" -maxdepth 1 -name 'libswt-pi4*.so' 2>/dev/null | wc -l)"
+  echo "DEBUG_OMNET_APPIMAGE: usr/lib SWT libs: $(find "$APPDIR/usr/lib" -maxdepth 1 \( -name 'libswt-pi4*.so' -o -name 'libswt-pi3*.so' \) 2>/dev/null | wc -l)"
 fi
 export OMNETPP_ROOT="$WRITABLE_OMNET"
 export PATH="${OMNETPP_ROOT}/bin:${PATH}"
@@ -309,8 +309,9 @@ fi
 
 # Copy Eclipse SWT native libs into usr/lib so the JVM finds them (java.library.path already includes usr/lib from the launcher)
 SWT_COUNT=0
-if [[ -d "$APPDIR/usr/lib" ]]; then
-  SWT_PLUGIN_DIR=$(find "$ROOT/ide/plugins" -maxdepth 1 -type d -name 'org.eclipse.swt.gtk.linux.x86_64*' 2>/dev/null | head -1)
+if [[ -d "$APPDIR/usr/lib" ]] && [[ -d "$ROOT/ide/plugins" ]]; then
+  # 1) Plugin as directory (org.eclipse.swt.gtk.linux.x86_64 or org.eclipse.swt.gtk.linux.x86_64_3.119.0 etc.)
+  SWT_PLUGIN_DIR=$(find "$ROOT/ide/plugins" -maxdepth 1 -type d \( -name 'org.eclipse.swt.gtk.linux.x86_64*' -o -name '*swt*gtk*linux*x86_64*' \) 2>/dev/null | head -1)
   if [[ -n "$SWT_PLUGIN_DIR" ]]; then
     echo ">>> Copying SWT native libs (from plugin dir) to usr/lib for Eclipse IDE..."
     cp -n "$SWT_PLUGIN_DIR"/*.so "$APPDIR/usr/lib/" 2>/dev/null || true
@@ -318,9 +319,16 @@ if [[ -d "$APPDIR/usr/lib" ]]; then
       cp -n "$so" "$APPDIR/usr/lib/" 2>/dev/null || true
     done
   fi
-  # Fallback: SWT may be shipped as a .jar with .so inside (Eclipse unpacks at runtime; we need them in usr/lib for AppImage)
-  if [[ $(find "$APPDIR/usr/lib" -maxdepth 1 -name 'libswt-pi4*.so' 2>/dev/null | wc -l) -eq 0 ]]; then
-    for swt_jar in "$ROOT/ide/plugins"/org.eclipse.swt.gtk.linux.x86_64*.jar; do
+  # 2) Fallback: any .so under ide/plugins
+  swt_in_usrlib() { find "$APPDIR/usr/lib" -maxdepth 1 \( -name 'libswt-pi4*.so' -o -name 'libswt-pi3*.so' \) 2>/dev/null | wc -l; }
+  if [[ $(swt_in_usrlib) -eq 0 ]]; then
+    find "$ROOT/ide/plugins" \( -name 'libswt-pi4*.so' -o -name 'libswt-pi3*.so' \) -type f 2>/dev/null | while read -r so; do
+      cp -n "$so" "$APPDIR/usr/lib/" 2>/dev/null || true
+    done
+  fi
+  # 3) Fallback: SWT shipped as .jar with .so inside (OMNeT++ 6.0.1 uses org.eclipse.swt.gtk.linux.x86_64_3.118.0...jar with libswt-pi3-gtk*.so)
+  if [[ $(swt_in_usrlib) -eq 0 ]]; then
+    for swt_jar in "$ROOT/ide/plugins"/org.eclipse.swt.gtk.linux.x86_64*.jar "$ROOT/ide/plugins"/*swt*gtk*linux*.jar "$ROOT/ide/plugins"/*swt*linux*x86_64*.jar; do
       [[ -f "$swt_jar" ]] || continue
       if unzip -l "$swt_jar" 2>/dev/null | grep -q '\.so$'; then
         echo ">>> Extracting SWT native libs from $(basename "$swt_jar") into usr/lib..."
@@ -329,11 +337,11 @@ if [[ -d "$APPDIR/usr/lib" ]]; then
       fi
     done
   fi
-  SWT_COUNT=$(find "$APPDIR/usr/lib" -maxdepth 1 -name 'libswt-pi4*.so' 2>/dev/null | wc -l)
+  SWT_COUNT=$(swt_in_usrlib)
   if [[ "${SWT_COUNT:-0}" -eq 0 ]]; then
-    echo ">>> Warning: no libswt-pi4*.so found in usr/lib; IDE may fail with 'Could not load SWT library' on first run."
+    echo ">>> Warning: no libswt-pi3*.so/libswt-pi4*.so found in usr/lib; IDE may fail with 'Could not load SWT library' on first run."
   else
-    echo ">>> SWT libs in usr/lib: $(find "$APPDIR/usr/lib" -maxdepth 1 -name 'libswt-pi4*.so' -print0 2>/dev/null | xargs -0 -I{} basename {} | tr '\n' ' ')"
+    echo ">>> SWT libs in usr/lib: $(find "$APPDIR/usr/lib" -maxdepth 1 \( -name 'libswt-pi4*.so' -o -name 'libswt-pi3*.so' \) -print0 2>/dev/null | xargs -0 -I{} basename {} | tr '\n' ' ')"
   fi
 fi
 
@@ -357,7 +365,7 @@ echo ">>> For console simulations: $APPIMAGE_OUT opp_run [options]"
 echo ">>> Includes Qt5 and bundled dependencies; on the system only Python3 is recommended (present on Ubuntu)."
 echo ""
 echo ">>> Verification checklist:"
-echo ">>>   - usr/lib contains SWT libs: $(find "$APPDIR/usr/lib" -maxdepth 1 -name 'libswt-pi4*.so' 2>/dev/null | wc -l) libswt-pi4*.so"
+echo ">>>   - usr/lib contains SWT libs: $(find "$APPDIR/usr/lib" -maxdepth 1 \( -name 'libswt-pi4*.so' -o -name 'libswt-pi3*.so' \) 2>/dev/null | wc -l) libswt-pi3/pi4*.so"
 echo ">>>   - First IDE run copies to ~/.local/share/omnetpp-${OMNET_VERSION}; test on Ubuntu 22.04/24.04."
 echo ">>>   - If IDE fails with 'Could not load SWT library': ensure build showed SWT libs in usr/lib; run with DEBUG_OMNET_APPIMAGE=1 to inspect paths."
 echo ""

@@ -66,6 +66,17 @@ chmod +x build_omnet_deb.sh
 ./build_omnet_deb.sh -d ./dist
 ```
 
+**Construir el .deb en Docker (recomendado para probar en 22.04 y 24.04):**  
+Si construís el .deb en un host con glibc más nuevo (p. ej. Ubuntu 24.04), el paquete puede no ejecutarse en Ubuntu 22.04. Para un .deb que funcione en **ambas** versiones, construilo dentro de un contenedor Ubuntu 22.04:
+
+```bash
+./build_omnet_deb_docker.sh
+# O con directorio de salida:
+./build_omnet_deb_docker.sh ./dist
+```
+
+Requiere Docker. La primera ejecución tarda ~15–30 min (descarga de imagen, dependencias y compilación).
+
 ### Installing the generated package
 
 ```bash
@@ -110,6 +121,17 @@ chmod +x build_omnet_appimage.sh
 ./build_omnet_appimage.sh -d ./dist
 ```
 
+**Construir el AppImage en Docker (compatible con Ubuntu 22.04 y 24.04):**  
+Para que el AppImage funcione en **Ubuntu 22.04** (y por tanto también en 24.04), conviene construirlo dentro de un contenedor Ubuntu 22.04; si se construye en un host con glibc más nuevo, puede fallar en 22.04.
+
+```bash
+./build_omnet_appimage_docker.sh
+# O con directorio de salida:
+./build_omnet_appimage_docker.sh ./dist
+```
+
+Requiere Docker. La primera ejecución tarda ~20–40 min.
+
 ### Running the AppImage
 
 ```bash
@@ -139,17 +161,55 @@ On first IDE launch, the AppImage copies OMNeT++ to `~/.local/share/omnetpp-6.0.
 
 - **`DEBUG_OMNET_APPIMAGE=1`**: Print APPDIR, WRITABLE_OMNET, eclipse.ini presence and SWT lib count before launching the IDE (for troubleshooting).
 
-### Test AppImage in Ubuntu 22.04 (Docker)
+### Testing with Docker (Ubuntu 22.04 and 24.04)
 
-To check that the AppImage has SWT libs and runs in a clean Ubuntu 22.04 environment:
+All three delivery methods can be tested inside **Ubuntu 22.04 or 24.04** containers. Requires Docker. By default `test_all_docker.sh` runs each test on both versions.
+
+| Test | Script | What it does |
+|------|--------|---------------|
+| **Instalador** | `test_install_docker.sh [22.04\|24.04]` | Runs `install_omnet.sh` in the container (download + build, 15–30 min), then checks `opp_run --version` and `bin/omnetpp`. |
+| **.deb** | `test_deb_docker.sh [path/to.deb] [22.04\|24.04]` | Installs the .deb in the container, runs `apt-get install -f`, then checks `opp_run` and `omnetpp` in PATH. Build the .deb first with `./build_omnet_deb.sh`. |
+| **AppImage** | `test_appimage_docker.sh [path/to.AppImage] [22.04\|24.04]` | Runs the AppImage in the container, checks SWT libs and `opp_run --version`. |
+
+Run all tests on both Ubuntu versions (skips install test if `SKIP_INSTALL=1`; skips .deb/AppImage if the files are not found):
 
 ```bash
-./test_appimage_docker.sh
-# Or with an explicit path:
-./test_appimage_docker.sh ./dist/OMNeT++-6.0.1-x86_64.AppImage
+./test_all_docker.sh
+# Skip the long install test:
+SKIP_INSTALL=1 ./test_all_docker.sh
+# Only Ubuntu 24.04:
+UBUNTU_VERSIONS="24.04" ./test_all_docker.sh
+# Look for .deb and AppImage in a specific directory:
+./test_all_docker.sh ./dist
 ```
 
-Requires Docker. The script runs the AppImage inside an `ubuntu:22.04` container and verifies that `usr/lib` contains SWT libs, then runs `opp_run --version`.
+### Tests con interfaz gráfica (ver que la IDE carga)
+
+Para comprobar que la IDE de OMNeT++ abre bien (no solo `opp_run`), podés usar **`test_gui_docker.sh`** de dos maneras:
+
+| Modo | Descripción |
+|------|-------------|
+| **`--x11`** | La ventana de OMNeT++ se abre en **tu pantalla**. Requiere X11 (o Wayland con Xwayland) y una vez en el host: `xhost +local:docker`. |
+| **`--browser`** | Arranca un **escritorio en un contenedor** y lo sirve por **noVNC**. Abrís **http://localhost:6901** en el navegador y ves el escritorio; ahí abrís una terminal o el lanzador y ejecutás OMNeT++ para ver si la IDE carga. |
+| **`--browser-check`** | Igual que `--browser` pero el script hace un **chequeo automático**: lanza la IDE en el contenedor, espera y comprueba con `wmctrl` si apareció una ventana con "OMNeT" en el título. Sirve para CI o para no tener que mirar el navegador. |
+
+Ejemplos:
+
+```bash
+# Escritorio en el navegador (abrís http://localhost:6901 y ejecutás OMNeT++ a mano)
+./test_gui_docker.sh --browser ./OMNeT++-6.0.1-x86_64.AppImage
+
+# Chequeo automático: el script dice OK o FAIL según si detecta la ventana
+./test_gui_docker.sh --browser-check
+
+# Con el .deb (instala el .deb en el contenedor y dejá el escritorio listo para ejecutar omnetpp)
+./test_gui_docker.sh --browser .deb ./omnetpp_6.0.1-1_amd64.deb
+
+# Ventana en tu pantalla (X11)
+./test_gui_docker.sh --x11 ./OMNeT++-6.0.1-x86_64.AppImage
+```
+
+Para `--browser` y `--browser-check` se usa la imagen **accetto/ubuntu-vnc-xfce-g3** (Ubuntu + Xfce + noVNC). Usuario/contraseña por defecto: **headless** / **headless**.
 
 ---
 
@@ -170,18 +230,42 @@ The scripts `build_omnet_deb.sh` and `build_omnet_appimage.sh` can install build
 
 ```
 .
-├── install_omnet.sh        # Direct installation
-├── build_omnet_deb.sh      # Build .deb package
-├── build_omnet_appimage.sh # Build AppImage
-├── test_appimage_docker.sh # Test AppImage in Ubuntu 22.04 (Docker)
+├── install_omnet.sh         # Direct installation
+├── build_omnet_deb.sh       # Build .deb package
+├── build_omnet_deb_docker.sh    # Build .deb inside Ubuntu 22.04 Docker (for 22.04 + 24.04)
+├── build_omnet_appimage.sh      # Build AppImage
+├── build_omnet_appimage_docker.sh # Build AppImage inside Ubuntu 22.04 Docker (for 22.04 + 24.04)
+├── test_install_docker.sh   # Test install script in Ubuntu 22.04/24.04 (Docker)
+├── test_deb_docker.sh       # Test .deb install in Ubuntu 22.04/24.04 (Docker)
+├── test_appimage_docker.sh  # Test AppImage in Ubuntu 22.04/24.04 (Docker)
+├── test_all_docker.sh       # Run all Docker tests
+├── test_gui_docker.sh       # Test con GUI: --x11 (ventana en tu pantalla) o --browser/--browser-check (noVNC)
 ├── .gitignore
 └── README.md
 ```
 
 ---
 
+## Licencia y redistribución de binarios
+
+**OMNeT++** está bajo la [Academic Public License (APL)](https://omnetpp.org/intro/license): uso gratuito para fines **no comerciales** (académicos, enseñanza, investigación, uso personal). El uso comercial requiere licencia de [OMNEST](https://www.omnest.com/).
+
+Podés **compartir** los `.deb` y el AppImage generados por este repo (por ejemplo en GitHub Releases) sin violar la licencia, siempre que:
+
+1. **Solo sea uso no comercial** (quien los descargue también debe usarlos bajo APL).
+2. **Acompañes los binarios** con esta información:
+   - Que OMNeT++ está bajo la **Academic Public License**.
+   - **Código fuente** de la versión usada: en el proyecto oficial, por ejemplo para 6.0.1:  
+     [https://github.com/omnetpp/omnetpp/releases/tag/omnetpp-6.0.1](https://github.com/omnetpp/omnetpp/releases/tag/omnetpp-6.0.1)  
+     (reemplazá `6.0.1` por la versión que hayas usado si es otra).
+   - Texto de la licencia: [https://omnetpp.org/intro/license](https://omnetpp.org/intro/license).
+
+En este repositorio esa información figura en este README; si publicás los binarios en otro sitio (p. ej. solo en Releases), incluir un aviso equivalente en la descripción del release o en un archivo junto a los binarios.
+
+---
+
 ## Notes
 
-- **Default version**: 6.0.1 (configurable via `OMNET_VERSION` in the build scripts).
+- **Versión por defecto**: 6.0.1. Es configurable en **todos** los scripts (build, install y tests) con la variable de entorno **`OMNET_VERSION`**, por ejemplo: `OMNET_VERSION=6.0.2 ./build_omnet_deb.sh`.
 - **Open Scene Graph (OSG)**: Disabled in the build (`WITH_OSG=no`) to avoid extra dependencies.
 - **Python**: The scripts create a `venv` inside the OMNeT++ tree with numpy, pandas, matplotlib, scipy, seaborn and posix_ipc, required by the framework.
