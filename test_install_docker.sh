@@ -15,7 +15,7 @@ case "$UBUNTU_VERSION" in 22.04|24.04) ;; *) echo "Error: UBUNTU_VERSION must be
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 INSTALL_SCRIPT="$SCRIPT_DIR/install_omnet.sh"
-OMNET_VERSION="${OMNET_VERSION:-6.0.1}"
+OMNET_VERSION="${OMNET_VERSION:-6.3.0}"
 OMNET_DIR="omnetpp-${OMNET_VERSION}"
 
 if [[ ! -f "$INSTALL_SCRIPT" ]]; then
@@ -34,7 +34,7 @@ docker run --rm \
   "ubuntu:${UBUNTU_VERSION}" \
   bash -c '
     set -e
-    OMNET_VERSION="${OMNET_VERSION:-6.0.1}"
+    OMNET_VERSION="${OMNET_VERSION:-6.3.0}"
     OMNET_DIR="omnetpp-${OMNET_VERSION}"
     apt-get update -qq && apt-get install -y -qq sudo > /dev/null
     cp /mnt/install_omnet.sh /tmp/install_omnet.sh

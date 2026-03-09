@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Test the OMNeT++ AppImage inside an Ubuntu Docker container.
-# Usage: ./test_appimage_docker.sh [path/to/OMNeT++-6.0.1-x86_64.AppImage] [22.04|24.04]
+# Usage: ./test_appimage_docker.sh [path/to/OMNeT++-6.3.0-x86_64.AppImage] [22.04|24.04]
 #   Or: UBUNTU_VERSION=24.04 ./test_appimage_docker.sh [path/to.AppImage]
 #
 # Requires: Docker, and the AppImage file.
@@ -12,7 +12,7 @@
 
 set -e
 
-OMNET_VERSION="${OMNET_VERSION:-6.0.1}"
+OMNET_VERSION="${OMNET_VERSION:-6.3.0}"
 APPIMAGE="${1:-./OMNeT++-${OMNET_VERSION}-x86_64.AppImage}"
 UBUNTU_VERSION="${UBUNTU_VERSION:-${2:-22.04}}"
 case "$UBUNTU_VERSION" in 22.04|24.04) ;; *) echo "Error: UBUNTU_VERSION must be 22.04 or 24.04"; exit 1;; esac

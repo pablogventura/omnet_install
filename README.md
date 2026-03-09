@@ -1,6 +1,6 @@
 # OMNeT++ Install — Installation and packaging scripts
 
-Scripts to install and package **OMNeT++ 6.0.1** on Linux (Debian/Ubuntu): direct installation, `.deb` package, or portable **AppImage**.
+Scripts to install and package **OMNeT++ 6.3.0** on Linux (Debian/Ubuntu): direct installation, `.deb` package, or portable **AppImage**.
 
 [OMNeT++](https://omnetpp.org/) is a discrete event simulation framework for networks and systems.
 
@@ -11,7 +11,7 @@ Scripts to install and package **OMNeT++ 6.0.1** on Linux (Debian/Ubuntu): direc
 | Option | Script | Result |
 |--------|--------|--------|
 | **Direct installation** | `install_omnet.sh` | OMNeT++ built and installed in the current directory |
-| **.deb package** | `build_omnet_deb.sh` | Installable `.deb` package in `/opt/omnetpp-6.0.1` |
+| **.deb package** | `build_omnet_deb.sh` | Installable `.deb` package in `/opt/omnetpp-6.3.0` |
 | **AppImage** | `build_omnet_appimage.sh` | Portable executable with Qt and dependencies bundled |
 
 ---
@@ -35,16 +35,16 @@ wget -qO- https://raw.githubusercontent.com/pablogventura/omnet_install/main/ins
 
 You will be prompted for the superuser password during execution. When finished:
 
-- OMNeT++ is in `./omnetpp-6.0.1/`
+- OMNeT++ is in `./omnetpp-6.3.0/`
 - Application menu shortcuts are created
-- To use from terminal: `source omnetpp-6.0.1/setenv` then `omnetpp` or `opp_run`
+- To use from terminal: `source omnetpp-6.3.0/setenv` then `omnetpp` or `opp_run`
 - If the IDE does not appear in PATH, open a new terminal or launch **OMNeT++** from the applications menu
 
 ---
 
 ## Option 2: .deb package
 
-Builds a `.deb` package that installs OMNeT++ in `/opt/omnetpp-6.0.1` and adds the `omnetpp` and `opp_run` commands to PATH (no need for `source setenv`).
+Builds a `.deb` package that installs OMNeT++ in `/opt/omnetpp-6.3.0` and adds the `omnetpp` and `opp_run` commands to PATH (no need for `source setenv`).
 
 ### Build requirements
 
@@ -80,19 +80,19 @@ Requires Docker. First run takes ~15–30 min (image download, dependencies and 
 ### Installing the generated package
 
 ```bash
-sudo dpkg -i omnetpp_6.0.1-1_amd64.deb
+sudo dpkg -i omnetpp_6.3.0-1_amd64.deb
 # If dependencies are missing:
 sudo apt-get install -f
 ```
 
 After installation:
 
-- OMNeT++ in `/opt/omnetpp-6.0.1`
+- OMNeT++ in `/opt/omnetpp-6.3.0`
 - Commands in PATH: `omnetpp` (IDE), `opp_run` (simulator)
 
 ### Environment variables (build)
 
-- **`OMNET_VERSION`**: OMNeT++ version (default: `6.0.1`)
+- **`OMNET_VERSION`**: OMNeT++ version (default: `6.3.0`)
 - **`BUILD_DIR`**: Temporary build directory (default: created with `mktemp -d`)
 
 ---
@@ -136,24 +136,24 @@ Requires Docker. First run takes ~20–40 min.
 
 ```bash
 # Open the IDE
-./OMNeT++-6.0.1-x86_64.AppImage
+./OMNeT++-6.3.0-x86_64.AppImage
 
 # Run simulations from the console
-./OMNeT++-6.0.1-x86_64.AppImage opp_run [options]
-./OMNeT++-6.0.1-x86_64.AppImage run [options]
+./OMNeT++-6.3.0-x86_64.AppImage opp_run [options]
+./OMNeT++-6.3.0-x86_64.AppImage run [options]
 ```
 
-On first IDE launch, the AppImage copies OMNeT++ to `~/.local/share/omnetpp-6.0.1` for writable workspace, logs, etc.
+On first IDE launch, the AppImage copies OMNeT++ to `~/.local/share/omnetpp-6.3.0` for writable workspace, logs, etc.
 
 ### AppImage troubleshooting
 
-- **First run**: The IDE copy to `~/.local/share/omnetpp-6.0.1` can take a moment; subsequent launches are faster.
-- **"Could not load SWT library"** (e.g. on Ubuntu 22.04): The build script copies SWT native libs into the AppImage’s `usr/lib`. After building, the script prints how many `libswt-pi4*.so` files are in `usr/lib`; if that count is 0, the IDE may fail. Run the AppImage with **`DEBUG_OMNET_APPIMAGE=1`** to print paths and config (e.g. `DEBUG_OMNET_APPIMAGE=1 ./OMNeT++-6.0.1-x86_64.AppImage`).
+- **First run**: The IDE copy to `~/.local/share/omnetpp-6.3.0` can take a moment; subsequent launches are faster.
+- **"Could not load SWT library"** (e.g. on Ubuntu 22.04): The build script copies SWT native libs into the AppImage’s `usr/lib`. After building, the script prints how many `libswt-pi4*.so` files are in `usr/lib`; if that count is 0, the IDE may fail. Run the AppImage with **`DEBUG_OMNET_APPIMAGE=1`** to print paths and config (e.g. `DEBUG_OMNET_APPIMAGE=1 ./OMNeT++-6.3.0-x86_64.AppImage`).
 - **Other native errors** (e.g. missing symbols, GLIBC version): SWT depends on GTK/glibc on the host; document the distro and error for support. For maximum portability, the target distro should be similar to the build distro.
 
 ### Environment variables (build)
 
-- **`OMNET_VERSION`**: OMNeT++ version (default: `6.0.1`)
+- **`OMNET_VERSION`**: OMNeT++ version (default: `6.3.0`)
 - **`BUILD_DIR`**: Temporary build directory
 - **`CLEAN_BUILD`**: If set, the build directory is removed when finished
 
@@ -197,16 +197,16 @@ Examples:
 
 ```bash
 # Desktop in browser (open http://localhost:6901 and run OMNeT++ manually)
-./test_gui_docker.sh --browser ./OMNeT++-6.0.1-x86_64.AppImage
+./test_gui_docker.sh --browser ./OMNeT++-6.3.0-x86_64.AppImage
 
 # Automatic check: script reports OK or FAIL based on whether it detects the window
 ./test_gui_docker.sh --browser-check
 
 # With .deb (installs .deb in container and leaves desktop ready to run omnetpp)
-./test_gui_docker.sh --browser .deb ./omnetpp_6.0.1-1_amd64.deb
+./test_gui_docker.sh --browser .deb ./omnetpp_6.3.0-1_amd64.deb
 
 # Window on your screen (X11)
-./test_gui_docker.sh --x11 ./OMNeT++-6.0.1-x86_64.AppImage
+./test_gui_docker.sh --x11 ./OMNeT++-6.3.0-x86_64.AppImage
 ```
 
 For `--browser` and `--browser-check` the image **accetto/ubuntu-vnc-xfce-g3** (Ubuntu + Xfce + noVNC) is used. Default user/password: **headless** / **headless**.
@@ -257,9 +257,9 @@ You may **share** the `.deb` and AppImage produced by this repo (e.g. on GitHub 
 1. **Use is non-commercial only** (recipients must also use them under the APL).
 2. **Accompany the binaries** with this information:
    - That OMNeT++ is under the **Academic Public License**.
-   - **Source code** for the version used: from the official project, e.g. for 6.0.1:  
-     [https://github.com/omnetpp/omnetpp/releases/tag/omnetpp-6.0.1](https://github.com/omnetpp/omnetpp/releases/tag/omnetpp-6.0.1)  
-     (replace `6.0.1` with the version you used if different).
+   - **Source code** for the version used: from the official project, e.g. for 6.3.0:  
+     [https://github.com/omnetpp/omnetpp/releases/tag/omnetpp-6.3.0](https://github.com/omnetpp/omnetpp/releases/tag/omnetpp-6.3.0)  
+     (replace `6.3.0` with the version you used if different).
    - License text: [https://omnetpp.org/intro/license](https://omnetpp.org/intro/license).
 
 In this repository that information is in this README; if you publish the binaries elsewhere (e.g. only in Releases), include an equivalent notice in the release description or in a file next to the binaries.
@@ -268,7 +268,7 @@ In this repository that information is in this README; if you publish the binari
 
 ## Notes
 
-- **Default version**: 6.0.1. Configurable in **all** scripts (build, install and tests) via the **`OMNET_VERSION`** environment variable, e.g. `OMNET_VERSION=6.0.2 ./build_omnet_deb.sh`.
+- **Default version**: 6.3.0. Configurable in **all** scripts (build, install and tests) via the **`OMNET_VERSION`** environment variable, e.g. `OMNET_VERSION=6.0.1 ./build_omnet_deb.sh`.
 - **Open Scene Graph (OSG)**: Disabled in the build (`WITH_OSG=no`) to avoid extra dependencies.
 - **Python**: The scripts create a `venv` inside the OMNeT++ tree with numpy, pandas, matplotlib, scipy, seaborn and posix_ipc, required by the framework.
 - **New OMNeT++ releases**: The workflow [Check OMNeT++ release](.github/workflows/check-omnet-release.yml) runs daily and opens an issue when [omnetpp/omnetpp](https://github.com/omnetpp/omnetpp) publishes a new release, so you can verify the scripts with that version. You can also trigger it manually from the Actions tab.

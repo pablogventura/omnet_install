@@ -14,7 +14,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 OUTPUT_DIR="${1:-$SCRIPT_DIR}"
 OUTPUT_ABS="$(cd "$(dirname "$OUTPUT_DIR")" && pwd)/$(basename "$OUTPUT_DIR")"
-OMNET_VERSION="${OMNET_VERSION:-6.0.1}"
+OMNET_VERSION="${OMNET_VERSION:-6.3.0}"
 DEB_NAME="omnetpp_${OMNET_VERSION}-1_amd64.deb"
 
 echo ">>> Building OMNeT++ .deb in Docker (Ubuntu 22.04)"

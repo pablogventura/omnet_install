@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Script to build an installable .deb package of OMNeT++ 6.0.1
+# Script to build an installable .deb package of OMNeT++ 6.3.0
 # Usage: ./build_omnet_deb.sh [output_directory]
 # Example: ./build_omnet_deb.sh ./dist
 #
@@ -10,7 +10,7 @@
 
 set -e
 
-OMNET_VERSION="${OMNET_VERSION:-6.0.1}"
+OMNET_VERSION="${OMNET_VERSION:-6.3.0}"
 OMNET_TARBALL="omnetpp-${OMNET_VERSION}-linux-x86_64.tgz"
 OMNET_URL="https://github.com/omnetpp/omnetpp/releases/download/omnetpp-${OMNET_VERSION}/${OMNET_TARBALL}"
 INSTALL_PREFIX="/opt/omnetpp-${OMNET_VERSION}"

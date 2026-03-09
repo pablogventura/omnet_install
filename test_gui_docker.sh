@@ -17,7 +17,7 @@
 #   ./test_gui_docker.sh --browser-check [path/to/AppImage]
 #   ./test_gui_docker.sh --browser .deb [path/to/package.deb]
 #
-# Default: AppImage in current directory (OMNeT++-6.0.1-x86_64.AppImage).
+# Default: AppImage in current directory (OMNeT++-6.3.0-x86_64.AppImage).
 # Requires: Docker. For --browser/--browser-check the image accetto/ubuntu-vnc-xfce-g3 is used.
 #
 
@@ -53,14 +53,14 @@ if [[ -z "$MODE" ]]; then
   echo "  --browser-check Same as --browser but script checks if OMNeT++ window appeared"
   echo ""
   echo "Examples:"
-  echo "  $0 --browser ./OMNeT++-6.0.1-x86_64.AppImage"
+  echo "  $0 --browser ./OMNeT++-6.3.0-x86_64.AppImage"
   echo "  $0 --browser-check"
-  echo "  $0 --browser .deb ./omnetpp_6.0.1-1_amd64.deb"
+  echo "  $0 --browser .deb ./omnetpp_6.3.0-1_amd64.deb"
   exit 1
 fi
 
 if [[ "$TYPE" == "deb" ]]; then
-  OMNET_VERSION="${OMNET_VERSION:-6.0.1}"
+  OMNET_VERSION="${OMNET_VERSION:-6.3.0}"
   DEB="${FILE_ARG:-$SCRIPT_DIR/omnetpp_${OMNET_VERSION}-1_amd64.deb}"
   DEB_ABS="$(cd "$(dirname "$DEB")" && pwd)/$(basename "$DEB")"
   DEB_DIR="$(dirname "$DEB_ABS")"
@@ -71,7 +71,7 @@ if [[ "$TYPE" == "deb" ]]; then
   fi
   APPIMAGE_ABS=""
 else
-  OMNET_VERSION="${OMNET_VERSION:-6.0.1}"
+  OMNET_VERSION="${OMNET_VERSION:-6.3.0}"
   APPIMAGE="${FILE_ARG:-$SCRIPT_DIR/OMNeT++-${OMNET_VERSION}-x86_64.AppImage}"
   APPIMAGE_ABS="$(cd "$(dirname "$APPIMAGE")" && pwd)/$(basename "$APPIMAGE")"
   if [[ ! -f "$APPIMAGE_ABS" ]]; then

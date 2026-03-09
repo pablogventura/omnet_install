@@ -3,15 +3,15 @@
 # Test installing and running the OMNeT++ .deb package inside an Ubuntu Docker container.
 # Installs the .deb, fixes dependencies if needed, then checks opp_run and omnetpp in PATH.
 #
-# Usage: ./test_deb_docker.sh [path/to/omnetpp_6.0.1-1_amd64.deb] [22.04|24.04]
+# Usage: ./test_deb_docker.sh [path/to/omnetpp_6.3.0-1_amd64.deb] [22.04|24.04]
 #   Or: UBUNTU_VERSION=24.04 ./test_deb_docker.sh [path/to.deb]
-# Default: ./omnetpp_6.0.1-1_amd64.deb, Ubuntu 22.04
+# Default: ./omnetpp_6.3.0-1_amd64.deb, Ubuntu 22.04
 # Requires: Docker, and a built .deb (e.g. from ./build_omnet_deb.sh).
 #
 
 set -e
 
-OMNET_VERSION="${OMNET_VERSION:-6.0.1}"
+OMNET_VERSION="${OMNET_VERSION:-6.3.0}"
 DEB="${1:-./omnetpp_${OMNET_VERSION}-1_amd64.deb}"
 UBUNTU_VERSION="${UBUNTU_VERSION:-${2:-22.04}}"
 case "$UBUNTU_VERSION" in 22.04|24.04) ;; *) echo "Error: UBUNTU_VERSION must be 22.04 or 24.04"; exit 1;; esac

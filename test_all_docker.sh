@@ -23,7 +23,7 @@ set -e
 UBUNTU_VERSIONS="${UBUNTU_VERSIONS:-22.04 24.04}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SEARCH_DIR="${1:-.}"
-OMNET_VERSION="${OMNET_VERSION:-6.0.1}"
+OMNET_VERSION="${OMNET_VERSION:-6.3.0}"
 DEB_BASENAME="omnetpp_${OMNET_VERSION}-1_amd64.deb"
 APPIMAGE_BASENAME="OMNeT++-${OMNET_VERSION}-x86_64.AppImage"
 # Look for .deb and AppImage in SEARCH_DIR (relative to cwd) or in script dir

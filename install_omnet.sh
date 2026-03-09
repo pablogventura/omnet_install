@@ -1,7 +1,7 @@
 #!/bin/bash
-# Direct installation of OMNeT++. Version configurable via OMNET_VERSION (default 6.0.1).
+# Direct installation of OMNeT++. Version configurable via OMNET_VERSION (default 6.3.0).
 
-OMNET_VERSION="${OMNET_VERSION:-6.0.1}"
+OMNET_VERSION="${OMNET_VERSION:-6.3.0}"
 OMNET_TARBALL="omnetpp-${OMNET_VERSION}-linux-x86_64.tgz"
 OMNET_URL="https://github.com/omnetpp/omnetpp/releases/download/omnetpp-${OMNET_VERSION}/${OMNET_TARBALL}"
 OMNET_DIR="omnetpp-${OMNET_VERSION}"

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Script to build a portable AppImage of OMNeT++ 6.0.1
+# Script to build a portable AppImage of OMNeT++ 6.3.0
 # Usage: ./build_omnet_appimage.sh [output_directory]
 #
 # Requirements: wget, tar, OMNeT++ build dependencies (optional -d).
@@ -23,7 +23,7 @@
 
 set -e
 
-OMNET_VERSION="${OMNET_VERSION:-6.0.1}"
+OMNET_VERSION="${OMNET_VERSION:-6.3.0}"
 OMNET_TARBALL="omnetpp-${OMNET_VERSION}-linux-x86_64.tgz"
 OMNET_URL="https://github.com/omnetpp/omnetpp/releases/download/omnetpp-${OMNET_VERSION}/${OMNET_TARBALL}"
 INSTALL_PREFIX="/opt/omnetpp-${OMNET_VERSION}"
@@ -209,9 +209,9 @@ set -e
 APPDIR="$(dirname "$(readlink -f "$0")")"
 # Bundled libraries (Qt5, etc.) in the AppImage
 export LD_LIBRARY_PATH="${APPDIR}/usr/lib:${APPDIR}/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
-READONLY_ROOT="${APPDIR}/opt/omnetpp-6.0.1"
+READONLY_ROOT="${APPDIR}/opt/omnetpp-6.3.0"
 WRITABLE_BASE="${XDG_DATA_HOME:-$HOME/.local/share}"
-WRITABLE_OMNET="${WRITABLE_BASE}/omnetpp-6.0.1"
+WRITABLE_OMNET="${WRITABLE_BASE}/omnetpp-6.3.0"
 
 # opp_run does not write to ide/; can run from read-only mount
 if [[ "${1:-}" == "opp_run" ]] || [[ "${1:-}" == "run" ]]; then
@@ -255,7 +255,7 @@ export OMNETPP_ROOT="$WRITABLE_OMNET"
 export PATH="${OMNETPP_ROOT}/bin:${PATH}"
 exec "${OMNETPP_ROOT}/bin/omnetpp" "$@"
 APPRUN
-sed -i "s|omnetpp-6\.0\.1|omnetpp-${OMNET_VERSION}|g" "$APPDIR/AppRun"
+sed -i "s|omnetpp-6\.3\.0|omnetpp-${OMNET_VERSION}|g" "$APPDIR/AppRun"
 chmod +x "$APPDIR/AppRun"
 
 OMNET_ICON_SRC=""
@@ -326,7 +326,7 @@ if [[ -d "$APPDIR/usr/lib" ]] && [[ -d "$ROOT/ide/plugins" ]]; then
       cp -n "$so" "$APPDIR/usr/lib/" 2>/dev/null || true
     done
   fi
-  # 3) Fallback: SWT shipped as .jar with .so inside (OMNeT++ 6.0.1 uses org.eclipse.swt.gtk.linux.x86_64_3.118.0...jar with libswt-pi3-gtk*.so)
+  # 3) Fallback: SWT shipped as .jar with .so inside (OMNeT++ 6.x uses org.eclipse.swt.gtk.linux.x86_64*.jar with libswt-pi3-gtk*.so)
   if [[ $(swt_in_usrlib) -eq 0 ]]; then
     for swt_jar in "$ROOT/ide/plugins"/org.eclipse.swt.gtk.linux.x86_64*.jar "$ROOT/ide/plugins"/*swt*gtk*linux*.jar "$ROOT/ide/plugins"/*swt*linux*x86_64*.jar; do
       [[ -f "$swt_jar" ]] || continue
