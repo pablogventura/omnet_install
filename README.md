@@ -149,7 +149,8 @@ On first IDE launch, the AppImage copies OMNeT++ to `~/.local/share/omnetpp-6.3.
 
 - **First run**: The IDE copy to `~/.local/share/omnetpp-6.3.0` can take a moment; subsequent launches are faster.
 - **"Could not load SWT library"** (e.g. on Ubuntu 22.04): The build script copies SWT native libs into the AppImage’s `usr/lib`. After building, the script prints how many `libswt-pi4*.so` files are in `usr/lib`; if that count is 0, the IDE may fail. Run the AppImage with **`DEBUG_OMNET_APPIMAGE=1`** to print paths and config (e.g. `DEBUG_OMNET_APPIMAGE=1 ./OMNeT++-6.3.0-x86_64.AppImage`).
-- **Other native errors** (e.g. missing symbols, GLIBC version): SWT depends on GTK/glibc on the host; document the distro and error for support. For maximum portability, the target distro should be similar to the build distro.
+- **"undefined symbol: g_dir_unref"** on Ubuntu 24.04: SWT was built against a different glib ABI. The build script **bundles glib/gobject** from the build host (use **`build_omnet_appimage_docker.sh`** on Ubuntu 22.04) so the AppImage works on both 22.04 and 24.04. If you already ran the AppImage once and the IDE failed, remove the writable copy so the next run uses the bundled libs: `rm -rf ~/.local/share/omnetpp-6.3.0`, then run the AppImage again.
+- **Other native errors** (e.g. missing symbols, GLIBC): Build the AppImage inside the **Docker** script (Ubuntu 22.04) so it bundles a compatible glib; document the distro and full error if it still fails.
 
 ### Environment variables (build)
 

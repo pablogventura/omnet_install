@@ -352,12 +352,17 @@ if [[ -d "$APPDIR/usr/lib" ]] && [[ -d "$ROOT/ide/plugins" ]]; then
   else
     echo ">>> SWT libs in usr/lib: $(find "$APPDIR/usr/lib" -maxdepth 1 \( -name 'libswt-pi4*.so' -o -name 'libswt-pi3*.so' \) -print0 2>/dev/null | xargs -0 -I{} basename {} | tr '\n' ' ')"
   fi
-  # Bundle glib/gobject from build host so SWT works on newer distros (e.g. Ubuntu 24.04 has different glib ABI -> "undefined symbol: g_dir_unref")
-  GLIB_LIBS="libglib-2.0.so.0 libgobject-2.0.so.0 libgio-2.0.so.0 libpcre2-8.so.0 libffi.so.8 libmount.so.1 libblkid.so.1 libselinux.so.1"
-  for lib in $GLIB_LIBS; do
+  # Bundle glib/GTK stack from build host so SWT works on newer distros (e.g. Ubuntu 24.04: g_dir_unref, g_once_init_*, atspi/pango/atk/cairo ABI)
+  SWT_STACK_LIBS="libglib-2.0.so.0 libgobject-2.0.so.0 libgio-2.0.so.0 libpcre2-8.so.0 libffi.so.8 libmount.so.1 libblkid.so.1 libselinux.so.1 \
+    libatspi.so.0 libpango-1.0.so.0 libpangocairo-1.0.so.0 libpangoft2-1.0.so.0 libcairo.so.2 libcairo-gobject.so.2 libcairo-script-interpreter.so.2 libpixman-1.so.0 \
+    libfontconfig.so.1 libfreetype.so.6 libharfbuzz.so.0 libfribidi.so.0 libthai.so.0 libdatrie.so.1 \
+    libatk-1.0.so.0 libatk-bridge-2.0.so.0 libgdk_pixbuf-2.0.so.0 \
+    libgdk-3.so.0 libgtk-3.so.0 libgmodule-2.0.so.0 \
+    libXrender.so.1 libXext.so.6 libX11.so.6 libxcb.so.1 libXau.so.6 libXdmcp.so.6"
+  for lib in $SWT_STACK_LIBS; do
     for dir in /usr/lib/x86_64-linux-gnu /usr/lib; do
       if [[ -e "$dir/$lib" ]]; then
-        cp -Ln "$dir/$lib" "$APPDIR/usr/lib/" 2>/dev/null && echo ">>> Bundled $lib for SWT/glib ABI compatibility" && break
+        cp -Ln "$dir/$lib" "$APPDIR/usr/lib/" 2>/dev/null && echo ">>> Bundled $lib for SWT/GTK ABI compatibility" && break
       fi
     done
   done
